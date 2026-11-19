@@ -238,6 +238,48 @@ textarea{min-height:100px;resize:vertical}
 .archiveCommander{font-size:10px;color:var(--gold);margin-left:7px}
 @media(max-width:580px){.archiveRows{grid-template-columns:1fr}.archiveModal{padding:12px}.archiveCardImage{width:48px;height:65px}}
 
+
+/* DeckCycle Complete — UI iPhone, navigazione, libreria e versioni */
+.deckBottomNav{position:fixed;z-index:35;left:50%;transform:translateX(-50%);bottom:max(12px,env(safe-area-inset-bottom));width:min(700px,calc(100% - 24px));display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;padding:7px;border:1px solid var(--line);border-radius:20px;background:var(--panel);box-shadow:0 14px 40px rgba(0,0,0,.5)}
+.deckBottomNav button{color:var(--muted);background:transparent;border:0;border-radius:13px;min-width:0;min-height:54px;font-weight:750;font-size:10px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:3px;padding:5px 2px}
+.deckBottomNav button .navIcon{font-size:19px;line-height:1.2}
+.deckBottomNav button.isCurrent{color:var(--gold);background:var(--panel3)}
+body.deckcycle-tabs .app{padding-bottom:calc(110px + env(safe-area-inset-bottom))}
+body.deckcycle-tabs .layout{grid-template-columns:minmax(0,1fr)}
+body.deckcycle-tabs [data-tab]:not(.tabActive){display:none !important}
+body.deckcycle-tabs .stack:empty{display:none}
+.artGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:10px;max-height:360px;overflow:auto;margin:12px 0}
+.artChoice{display:flex;flex-direction:column;gap:6px;text-align:left;padding:7px;border:1px solid var(--line);background:var(--panel2);color:var(--text);border-radius:13px;min-width:0}
+.artChoice img{width:100%;aspect-ratio:4/3;border-radius:8px;object-fit:cover}
+.artChoice span{font-size:11px;line-height:1.3;color:var(--muted)}
+.artChoice:hover{border-color:var(--gold)}
+.artUpload{margin:10px 0;padding:11px;border:1px dashed var(--line);border-radius:13px}
+.opponentRow{display:grid;grid-template-columns:38px minmax(80px,1fr) minmax(95px,1.1fr) 43px 43px;gap:5px;align-items:center;margin:7px 0}
+.opponentRow .field{min-width:0;padding:9px 8px;font-size:12px}
+.opponentArt{width:38px;height:47px;object-fit:cover;border-radius:7px;background:var(--panel3)}
+.opponentRow .pillBtn{padding:8px 5px;min-height:38px}
+.drawViewport{position:absolute;inset:0;overflow:hidden;display:flex;align-items:center;pointer-events:none}
+.reelWrap{position:relative;overflow:hidden}
+.drawRail{display:flex;gap:8px;align-items:center;width:max-content;will-change:transform}
+.drawMiniCard{width:130px;min-width:130px;height:130px;border:1px solid var(--gold2);background:var(--panel3);color:var(--text);border-radius:13px;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between;box-shadow:0 8px 19px rgba(0,0,0,.35)}
+.drawMiniCard img{width:100%;height:97px;object-fit:cover}
+.drawMiniCard div{padding:5px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:10px;font-weight:800}
+.archiveVersions{padding:12px;border:1px solid var(--line);background:var(--panel2);border-radius:15px;margin:15px 0}
+.archiveDiffColumns{display:grid;grid-template-columns:1fr 1fr;gap:14px;font-size:12px;margin-top:9px}
+.archiveDiffColumns li{margin-bottom:6px;overflow-wrap:anywhere}
+.analysisSummary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin:10px 0 20px}
+.analysisStat{display:flex;flex-direction:column;gap:3px;border:1px solid var(--line);border-radius:14px;background:var(--panel2);padding:14px;text-align:center}
+.analysisStat b{font-size:24px;color:var(--gold)}
+.analysisStat span{font-size:11px;color:var(--muted)}
+.analysisResult{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px;border-bottom:1px solid var(--line);font-size:13px;flex-wrap:wrap}
+.analysisBreakdown{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.analysisBreakdown>div{border-radius:12px;padding:10px 7px;text-align:center;background:var(--panel2);display:flex;flex-direction:column;gap:4px}
+.analysisBreakdown b{font-size:22px;color:var(--gold)}
+.analysisBreakdown span{font-size:10px;color:var(--muted)}
+.analysisNote{margin:7px 0;padding:10px 12px;background:var(--panel2);border-radius:11px;font-size:12px}
+@media(max-width:560px){.analysisSummary{grid-template-columns:repeat(2,minmax(0,1fr))}.analysisBreakdown{grid-template-columns:repeat(3,1fr)}.archiveDiffColumns{grid-template-columns:1fr}.opponentRow{grid-template-columns:34px 1fr 1fr 34px 34px;gap:4px}.opponentRow .pillBtn{font-size:11px;padding:5px 0}.opponentRow .field{font-size:11px;padding:8px 5px}}
+@media(prefers-reduced-motion:reduce){.drawRail{transition:none !important}.deckBottomNav button{transition:none}}
+
 </style>
 </head>
 <body>
@@ -272,7 +314,7 @@ textarea{min-height:100px;resize:vertical}
 
   <div class="layout">
     <div class="stack">
-      <section class="card hero reveal" id="hero">
+      <section class="card hero reveal" id="hero" data-tab="play">
         <img id="heroArt" class="heroArt hide" alt="Artwork comandante">
         <div class="heroOverlay"></div>
         <div class="heroContent">
@@ -300,7 +342,7 @@ textarea{min-height:100px;resize:vertical}
         </div>
       </section>
 
-      <section class="card section reveal">
+      <section class="card section reveal" data-tab="play">
         <div class="sectionHeader">
           <div>
             <div class="sectionTitle">Sorteggio animato</div>
@@ -322,7 +364,7 @@ textarea{min-height:100px;resize:vertical}
         </div>
       </section>
 
-      <section class="card section reveal">
+      <section class="card section reveal" data-tab="decks">
         <div class="sectionHeader">
           <div>
             <div class="sectionTitle">Aggiungi mazzo</div>
@@ -343,7 +385,7 @@ textarea{min-height:100px;resize:vertical}
         </form>
       </section>
 
-      <section class="card section reveal">
+      <section class="card section reveal" data-tab="decks">
         <div class="sectionHeader">
           <div>
             <div class="sectionTitle">I tuoi mazzi</div>
@@ -369,7 +411,7 @@ textarea{min-height:100px;resize:vertical}
     </div>
 
     <div class="stack">
-      <section class="card section reveal">
+      <section class="card section reveal" data-tab="games">
         <div class="sectionHeader">
           <div>
             <div class="sectionTitle">Storico completo</div>
@@ -383,7 +425,7 @@ textarea{min-height:100px;resize:vertical}
         </div>
       </section>
 
-      <section class="card section reveal">
+      <section class="card section reveal" data-tab="analysis">
         <div class="sectionHeader">
           <div>
             <div class="sectionTitle">Classifica mazzi</div>
@@ -393,7 +435,7 @@ textarea{min-height:100px;resize:vertical}
         <div id="ranking" class="rankList"></div>
       </section>
 
-      <section class="card section reveal">
+      <section class="card section reveal" data-tab="analysis">
         <div class="sectionHeader">
           <div>
             <div class="sectionTitle">Risultati per mese</div>
@@ -403,10 +445,39 @@ textarea{min-height:100px;resize:vertical}
         </div>
         <div id="months" class="monthGrid"></div>
       </section>
+
+      <section class="card section reveal" data-tab="analysis">
+        <div class="sectionHeader"><div><div class="sectionTitle">Analisi Commander</div>
+          <div class="sectionSub">Stime dai testi Oracle, risultati reali delle partite e confronti per versione.</div></div></div>
+        <div id="analysisSummary" class="analysisSummary"></div>
+        <div id="analysisResults"></div>
+        <div class="row" style="margin:14px 0"><label for="analysisSelect" class="sectionSub">Mazzo da analizzare</label>
+          <select id="analysisSelect" style="width:auto;max-width:280px"></select></div>
+        <div id="analysisDetails"></div>
+      </section>
+      <section class="card section reveal" data-tab="settings">
+        <div class="sectionTitle">Impostazioni e protezione dati</div>
+        <p class="note">DeckCycle salva mazzi, storico, versioni e artwork sul dispositivo, non su un server.
+          Per proteggerli usa <b>Esporta</b> e conserva il JSON in File/iCloud Drive.
+          Per recuperare uno stato precedente apri <b>Copie</b>, in alto.</p>
+        <p class="note">Le immagini da Scryfall richiedono Internet. Le liste già salvate restano disponibili offline.</p>
+        <div class="row"><button class="pillBtn" type="button" data-go-tab="decks">Apri collezione</button>
+          <button class="pillBtn" type="button" data-go-tab="games">Vai allo storico</button></div>
+        <p class="note">Questa è una versione di prova. Non rimuovere la PWA originale finché i backup e l'importazione non sono stati verificati su iPhone.</p>
+      </section>
+
     </div>
   </div>
 
-  <div class="footer">DeckCycle Deluxe salva i dati nel browser del dispositivo. Le immagini dei comandanti arrivano da Scryfall e richiedono Internet.</div>
+  <div class="footer">DeckCycle Deluxe salva i dati sul dispositivo. Esporta periodicamente un backup completo.</div>
+  <nav class="deckBottomNav" aria-label="Navigazione DeckCycle">
+    <button type="button" data-go-tab="play"><span class="navIcon">🎲</span>Gioca</button>
+    <button type="button" data-go-tab="decks"><span class="navIcon">🃏</span>Mazzi</button>
+    <button type="button" data-go-tab="games"><span class="navIcon">🏆</span>Partite</button>
+    <button type="button" data-go-tab="analysis"><span class="navIcon">📊</span>Analisi</button>
+    <button type="button" data-go-tab="settings"><span class="navIcon">⚙️</span>Altro</button>
+  </nav>
+
 </div>
 
 <div class="modalBg" id="recordModal">
@@ -423,6 +494,17 @@ textarea{min-height:100px;resize:vertical}
         <input class="field" id="recordEnemy" placeholder="Es. Atraxa, Krenko, Omnath">
         <label class="sectionSub" style="display:block;margin-top:12px">Note</label>
         <textarea id="recordNotes" placeholder="Come è andata? match-up? carte da cambiare?"></textarea>
+
+        <div class="archiveHeading">Tavolo Commander</div>
+        <div class="sectionSub">Aggiungi gli avversari e cerca i loro comandanti su Scryfall, se disponibili.</div>
+        <div class="row" style="justify-content:space-between;margin:8px 0">
+          <span id="opponentCount" class="sectionSub">3 avversari</span>
+          <button type="button" class="pillBtn" id="opponentAddBtn">+ Avversario</button>
+        </div>
+        <div id="opponentTable"></div>
+        <label class="sectionSub" for="recordProblems" style="display:block;margin-top:12px">Difficoltà riscontrate durante la partita</label>
+        <textarea id="recordProblems" placeholder="Es. Ho pescato poche terre, mancavano removal, non sono riuscito a proteggere il comandante..."></textarea>
+
       </div>
       <div class="previewCard">
         <img id="recordArt" class="previewArt hide" alt="Artwork comandante">
@@ -463,6 +545,7 @@ textarea{min-height:100px;resize:vertical}
         <input class="field" id="editMoxfield" placeholder="https://www.moxfield.com/decks/...">
         <div class="row" style="margin-top:14px">
           <button class="pillBtn" id="openDeckListBtn" type="button">📚 Lista carte</button>
+          <button class="pillBtn" id="openArtModalBtn" type="button">🎨 Cambia artwork</button>
           <button class="pillBtn" id="refreshArtBtn" type="button">Aggiorna da Scryfall</button>
           <button class="pillBtn" id="togglePauseBtn" type="button">Metti in pausa</button>
           <button class="danger" id="deleteDeckBtn" type="button">Elimina</button>
@@ -518,6 +601,26 @@ textarea{min-height:100px;resize:vertical}
 </div>
 
 
+
+<div class="modalBg" id="artModal">
+  <div class="modal">
+    <div class="modalHead"><div class="modalTitle" id="artTitle">Artwork del comandante</div>
+      <button class="iconBtn" type="button" id="artCloseBtn" aria-label="Chiudi">✕</button></div>
+    <p id="artStatus" class="archiveStatus" role="status"></p>
+    <div class="row"><input class="field" id="artSearchName" placeholder="Nome del comandante" style="flex:1">
+      <button class="primary" id="artSearchBtn" type="button">Stampe Scryfall</button></div>
+    <div id="artGallery" class="artGrid"></div>
+    <div class="artUpload">
+      <div class="archiveHeading">Artwork personalizzato</div>
+      <p class="note">Usa una foto o un proxy dal tuo telefono. Viene ridimensionato e salvato in IndexedDB, e incluso nei backup completi.</p>
+      <input id="artFile" type="file" accept="image/png,image/jpeg,image/webp" class="field">
+      <p class="note">Oppure usa il link HTTPS di un'immagine.</p>
+      <div class="row"><input class="field" id="artCustomUrl" placeholder="https://…" style="flex:1">
+        <button class="pillBtn" type="button" id="artUrlBtn">Usa URL</button></div>
+    </div>
+  </div>
+</div>
+
 <div class="modalBg" id="archiveModal">
   <div class="modal archiveModal">
     <div class="modalHead">
@@ -543,6 +646,18 @@ textarea{min-height:100px;resize:vertical}
     </div>
     <div id="archiveMetrics" class="archiveMetrics"></div>
     <div id="archiveCurve"></div>
+
+    <section class="archiveVersions">
+      <div class="archiveHeading">Versioni del mazzo</div>
+      <p class="note">Salva una fotografia della lista, confronta aggiunte e tagli oppure ripristina una versione precedente.</p>
+      <div class="archiveToolbar"><button class="pillBtn" type="button" id="archiveVersionSaveBtn">+ Salva versione</button>
+        <select id="archiveVersionSelect" style="max-width:300px"><option value="">Seleziona versione precedente</option></select>
+        <button class="pillBtn" id="archiveVersionCompareBtn" type="button">Confronta</button>
+        <button class="pillBtn" id="archiveVersionRestoreBtn" type="button">Ripristina</button>
+      </div>
+      <div id="archiveVersionDiff"></div>
+    </section>
+
     <div id="archiveCards"></div>
     <p class="note" style="margin-top:15px">Le liste e i metadati sono salvati su questo dispositivo. Esporta un backup JSON anche su File/iCloud: la memoria locale non è una sincronizzazione tra dispositivi.</p>
   </div>
@@ -1096,6 +1211,7 @@ document.addEventListener('visibilitychange', ()=>{
 });
 })();
 </script>
+<script src="./features.js"></script>
 <script src="./pwa.js"></script>
 </body>
 </html>
