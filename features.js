@@ -258,7 +258,7 @@
     protection: /\bhexproof\b|\bindestructible\b|\bward\b|\bprotection from\b|\bphase out\b|\bphases? out\b|\bcan't be countered\b|\bprevent (?:all|the next)/i,
     recursion: /\breturn (?:target|a|up to \w+) .*?from (?:your|a|the) graveyard|\bcast .*?from (?:your|a|the) graveyard|\breanimate\b/i
   };
-  function classify(entries,cardMap){
+  function classify(entries,cardMap,overrides){
     const tally={ramp:0,draw:0,removal:0,protection:0,recursion:0};
     let unknown=0,known=0;
     for(const entry of entries){
@@ -266,8 +266,9 @@
       if(!card){unknown+=entry.quantity;continue}
       known+=entry.quantity;
       const text=String(card.oracleText||'');
+      const manuallySet=overrides?.get(entry.name.toLowerCase().normalize('NFKC'));
       for(const [key,pattern] of Object.entries(behavior)){
-        if(pattern.test(text))tally[key]+=entry.quantity;
+        if(manuallySet ? manuallySet.includes(key) : pattern.test(text))tally[key]+=entry.quantity;
       }
     }
     return {...tally,unknown,known};
@@ -325,11 +326,13 @@
     try{
       const list=await archive().loadDeck(key);
       if(!list){$('analysisDetails').innerHTML=html+'<p class="note">Importa una lista di carte per stimare ramp, pescata, removal e protezioni.</p>';return}
-      const cards=await archive().cachedCards(list.entries);
+      const [cards,overrides]=await Promise.all([
+        archive().cachedCards(list.entries),archive().getRoleOverrides(key)
+      ]);
       if(analysisDeckId!==key)return;
       const labels={ramp:'Ramp',draw:'Pescata',removal:'Removal',protection:'Protezioni',recursion:'Recursion'};
-      const estimate=classify(list.entries,cards);
-      html+='<div class="archiveHeading">Ruoli delle carte · stime modificabili nelle prossime versioni</div>'+
+      const estimate=classify(list.entries,cards,overrides);
+      html+='<div class="archiveHeading">Ruoli delle carte · classificazioni automatiche modificabili dalla Lista</div>'+
         '<div class="analysisBreakdown">'+Object.entries(labels).map(([k,label])=>
           '<div><b>'+estimate[k]+'</b><span>'+label+'</span></div>').join('')+'</div>'+
         '<p class="note">Stime basate sul testo Oracle: alcune carte ricoprono più ruoli. '+estimate.unknown+
