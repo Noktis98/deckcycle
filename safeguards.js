@@ -196,13 +196,15 @@
     setTimeout(function () { URL.revokeObjectURL(url); }, 3000);
   }
 
-  function exportData(state) {
+  function exportData(state, archive) {
     var json, name, file;
     try {
-      json = JSON.stringify({
-        app: 'DeckCycle Deluxe', version: 5, schemaVersion: SCHEMA_VERSION,
+      var backup = {
+        app: 'DeckCycle Deluxe', version: 6, schemaVersion: SCHEMA_VERSION,
         exportedAt: new Date().toISOString(), data: state
-      }, null, 2);
+      };
+      if (archive !== undefined && archive !== null) backup.archive = archive;
+      json = JSON.stringify(backup, null, 2);
       name = 'deckcycle-backup-' + new Date().toISOString().slice(0, 10) + '.json';
       if (typeof File === 'function') file = new File([json], name, { type: 'application/json' });
     } catch (error) {
@@ -233,6 +235,7 @@
       var wrapper = JSON.parse(await file.text());
       var incoming = wrapper && wrapper.data ? wrapper.data : wrapper;
       next = hydrate(incoming, options.defaults, options.normalizeDeck, options.uid);
+      if (options.validateExtra) options.validateExtra(wrapper, next);
     } catch (error) {
       notifyWarning('Importazione annullata: ' + error.message);
       return false;
@@ -263,6 +266,22 @@
       localStorage.setItem(options.key, JSON.stringify(next));
     } catch (error) {
       notifyWarning('Importazione NON salvata: memoria insufficiente o accesso negato.');
+      return false;
+    }
+    try {
+      if (options.afterSave) await options.afterSave(wrapper, next);
+    } catch (error) {
+      // Se l’archivio IndexedDB non è ripristinabile, riportare anche
+      // il salvataggio principale ai dati precedenti, se possibile.
+      var restored = false;
+      try {
+        if (old === null) localStorage.removeItem(options.key);
+        else localStorage.setItem(options.key, old);
+        restored = true;
+      } catch (rollbackError) { /* avviso persistente sotto */ }
+      notifyWarning('Importazione delle liste non riuscita: ' + error.message +
+        (restored ? '. I dati precedenti sono stati ripristinati.' :
+          '. Non è stato possibile ripristinare automaticamente lo stato precedente: usa le copie di sicurezza.'));
       return false;
     }
     blocked = false;

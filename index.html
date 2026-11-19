@@ -213,6 +213,31 @@ textarea{min-height:100px;resize:vertical}
   .deckThumb{width:54px;height:72px}
   .deckActions{grid-column:2;flex-direction:row;flex-wrap:wrap;justify-content:flex-start}
 }
+
+/* Fase 3: archivio delle carte */
+.archiveModal{width:min(980px,100%)}
+.archiveToolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:12px 0}
+.archivePaste{min-height:210px;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:13px;line-height:1.5}
+.archiveStatus{font-size:13px;color:var(--muted);margin:10px 0;line-height:1.5}
+.archiveError{color:var(--red)}
+.archiveMetrics,.archiveCategorySummary{display:flex;gap:7px;flex-wrap:wrap;margin:12px 0}
+.archiveHeading{margin:20px 0 10px;font-size:15px;letter-spacing:.01em}
+.archiveChart{height:164px;display:grid;grid-template-columns:repeat(7,1fr);gap:7px;align-items:end;padding:8px;border:1px solid var(--line);border-radius:15px;background:var(--panel2)}
+.archiveBarCol{height:100%;display:flex;align-items:center;flex-direction:column;gap:5px;font-size:11px}
+.archiveBarValue{min-height:16px;color:var(--muted)}
+.archiveBarTrack{width:100%;flex:1;position:relative}
+.archiveBar{position:absolute;bottom:0;left:10%;width:80%;border-radius:6px 6px 2px 2px;background:linear-gradient(0deg,var(--gold2),var(--gold))}
+.archiveBarLabel{font-weight:800}
+.archiveRows{display:grid;grid-template-columns:repeat(auto-fill,minmax(265px,1fr));gap:8px}
+.archiveCard{display:flex;align-items:flex-start;gap:9px;min-height:64px;border:1px solid var(--line);border-radius:13px;padding:8px;background:var(--panel2)}
+.archiveCardImage{width:58px;height:80px;flex:none;border-radius:6px;object-fit:cover;background:var(--field)}
+.archiveCardCopy{min-width:0;flex:1}
+.archiveCardName{font-size:13px;line-height:1.35;overflow-wrap:anywhere}
+.archiveCardDetails{font-size:11px;color:var(--muted);margin:5px 0;overflow-wrap:anywhere}
+.archiveCardCopy a{font-size:11px;color:var(--gold)}
+.archiveCommander{font-size:10px;color:var(--gold);margin-left:7px}
+@media(max-width:580px){.archiveRows{grid-template-columns:1fr}.archiveModal{padding:12px}.archiveCardImage{width:48px;height:65px}}
+
 </style>
 </head>
 <body>
@@ -437,6 +462,7 @@ textarea{min-height:100px;resize:vertical}
         <label class="sectionSub" style="display:block;margin-top:12px">Link Moxfield</label>
         <input class="field" id="editMoxfield" placeholder="https://www.moxfield.com/decks/...">
         <div class="row" style="margin-top:14px">
+          <button class="pillBtn" id="openDeckListBtn" type="button">📚 Lista carte</button>
           <button class="pillBtn" id="refreshArtBtn" type="button">Aggiorna da Scryfall</button>
           <button class="pillBtn" id="togglePauseBtn" type="button">Metti in pausa</button>
           <button class="danger" id="deleteDeckBtn" type="button">Elimina</button>
@@ -491,7 +517,40 @@ textarea{min-height:100px;resize:vertical}
   </div>
 </div>
 
+
+<div class="modalBg" id="archiveModal">
+  <div class="modal archiveModal">
+    <div class="modalHead">
+      <div>
+        <div class="modalTitle" id="archiveTitle">Lista carte</div>
+        <div class="sectionSub">Archivio locale · Moxfield · Scryfall</div>
+      </div>
+      <button class="iconBtn" id="archiveCloseBtn" data-close="archiveModal" type="button" aria-label="Chiudi lista carte">✕</button>
+    </div>
+    <p class="archiveStatus" id="archiveStatus" role="status" aria-live="polite"></p>
+    <div class="archiveToolbar">
+      <button class="pillBtn" id="archiveEditBtn" type="button">✏️ Importa o modifica lista</button>
+      <button class="pillBtn" id="archiveRefreshBtn" type="button">🔄 Aggiorna Scryfall</button>
+      <button class="pillBtn" id="archiveImagesBtn" type="button">Nascondi immagini</button>
+    </div>
+    <div id="archiveEditor" class="hide">
+      <label class="sectionSub" for="archivePaste">Incolla la lista Moxfield (1 Nome Carta). Puoi includere Commander, Deck, set e numeri di collezione.</label>
+      <textarea id="archivePaste" class="archivePaste" spellcheck="false" placeholder="Commander&#10;1 Wilhelt, the Rotcleaver&#10;&#10;Deck&#10;1 Sol Ring&#10;1 Arcane Signet&#10;1 Command Tower"></textarea>
+      <div class="row" style="margin:9px 0 14px">
+        <button class="primary" id="archiveSaveBtn" type="button">Salva lista</button>
+        <span class="note">Una lista incompleta può essere salvata dopo conferma.</span>
+      </div>
+    </div>
+    <div id="archiveMetrics" class="archiveMetrics"></div>
+    <div id="archiveCurve"></div>
+    <div id="archiveCards"></div>
+    <p class="note" style="margin-top:15px">Le liste e i metadati sono salvati su questo dispositivo. Esporta un backup JSON anche su File/iCloud: la memoria locale non è una sincronizzazione tra dispositivi.</p>
+  </div>
+</div>
+
 <script src="./safeguards.js"></script>
+<script src="./archive.js"></script>
+<script src="./archive-ui.js"></script>
 <script>
 (() => {
 const KEY = 'deckcycle_magic_v1';
@@ -503,6 +562,15 @@ let pendingResult = null;
 let editingHistoryId = null;
 let historyVisibleCount = 60;
 let selectedMonthYear = null;
+let archiveBackupError = null;
+function warmArchiveBackup(){
+  return window.DeckCycleArchive.warmExport().then(()=>{
+    archiveBackupError = null;
+  }).catch(error=>{
+    archiveBackupError = error.message;
+    console.warn('DeckCycle: preparazione backup carte:', error.message);
+  });
+}
 
 function uid(){return Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4)}
 function load(){return window.DeckCycleSafe.load(KEY, DEFAULT_STATE, normalizeDeck, uid)}
@@ -665,6 +733,7 @@ function renderDeckList(){
         <button class="miniBtn" data-action="choose" data-id="${d.id}">Usa</button>
         <button class="miniBtn" data-action="pause" data-id="${d.id}">${d.paused?'Riattiva':'Pausa'}</button>
         <button class="miniBtn" data-action="edit" data-id="${d.id}">Scheda</button>
+        <button class="miniBtn" data-action="list" data-id="${d.id}">Lista</button>
       </div>
     </div>`
   }).join('');
@@ -929,14 +998,39 @@ function undoLast(){
   if(!h) return toast('Nessun risultato da annullare.');
   removeHistory(h);
 }
-function exportData(){window.DeckCycleSafe.exportData(state)}
+function exportData(){
+  const archive = window.DeckCycleArchive.readyExport();
+  if(!archive){
+    if(archiveBackupError){
+      if(confirm('Archivio liste non disponibile: ' + archiveBackupError +
+        '. Vuoi esportare SOLO mazzi e statistiche, SENZA le liste delle carte?')){
+        window.DeckCycleSafe.exportData(state);
+      }
+    }else{
+      toast('Sto preparando il backup delle liste. Riprova Esporta fra un momento.');
+      warmArchiveBackup();
+    }
+    return;
+  }
+  // Chiamata sincrona dal clic: mantiene il permesso per il menu Condividi iOS.
+  window.DeckCycleSafe.exportData(state, archive);
+}
 function importData(file){
   window.DeckCycleSafe.importData(file, {
     key: KEY, defaults: DEFAULT_STATE, normalizeDeck, uid,
+    validateExtra(wrapper){
+      if(wrapper && wrapper.archive) window.DeckCycleArchive.validateBackupArchive(wrapper.archive);
+    },
+    async afterSave(wrapper, next){
+      if(wrapper && wrapper.archive){
+        await window.DeckCycleArchive.importAll(wrapper.archive);
+      }
+    },
     onSuccess(next){
       state = next;
       render();
-      toast('Backup importato correttamente.');
+      toast('Backup importato correttamente, incluse le liste se presenti.');
+      warmArchiveBackup();
     }
   });
 }
@@ -971,11 +1065,18 @@ $('deckList').addEventListener('click', e=>{
   if(action==='choose'){state.selected=id; state.selectedManually=true; save(); render(); toast(`Selezionato: ${d.name}`); window.scrollTo({top:0, behavior:'smooth'});}
   if(action==='pause'){d.paused=!d.paused; save(); render(); toast(d.paused ? 'Mazzo messo in pausa.' : 'Mazzo riattivato.');}
   if(action==='edit'){openEdit(id)}
+  if(action==='list'){window.DeckCycleArchiveUI.open(d)}
 });
 $('saveEditBtn').addEventListener('click', saveEdit);
 $('deleteDeckBtn').addEventListener('click', deleteDeck);
 $('togglePauseBtn').addEventListener('click', togglePauseCurrent);
 $('refreshArtBtn').addEventListener('click', ()=>{const d=getDeck(editId); if(!d) return; d.commander=$('editCommander').value.trim()||d.name; d.name=$('editName').value.trim()||d.name; d.colors=''; fetchCommanderArt(d,true); renderEditPreview(d)});
+$('openDeckListBtn').addEventListener('click', ()=>{
+  const d = getDeck(editId);
+  if(!d) return;
+  closeModal('editModal');
+  window.DeckCycleArchiveUI.open(d);
+});
 $('exportBtn').addEventListener('click', exportData);
 $('importBtn').addEventListener('click', ()=>$('importFile').click());
 $('importFile').addEventListener('change', e=>{const f=e.target.files?.[0]; if(f) importData(f); e.target.value=''});
@@ -987,6 +1088,12 @@ document.addEventListener('keydown', e=>{if(e.key==='Escape') document.querySele
 
 applyTheme(); render();
 window.DeckCycleSafe.installCopiesButton(KEY);
+window.DeckCycleArchiveUI.init();
+window.DeckCycleArchive.saveBaseline(state).catch(error => console.warn('DeckCycle: copia di migrazione IndexedDB non disponibile:', error.message));
+warmArchiveBackup();
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState === 'visible') warmArchiveBackup();
+});
 })();
 </script>
 <script src="./pwa.js"></script>
