@@ -116,6 +116,97 @@
     $('archiveCards').innerHTML = markup || '<div class="empty">Nessuna carta.</div>';
   }
 
+  async function renderVersions() {
+    const selector = $('archiveVersionSelect');
+    const selected = selector.value;
+    selector.innerHTML = '<option value="">Scegli una versione precedente</option>';
+    if (!deck) return;
+    try {
+      const versions = await store.listRevisions(deck.id);
+      selector.innerHTML += versions.map(rev =>
+        '<option value="' + Number(rev.id) + '">' +
+        escapeHtml(new Date(rev.at).toLocaleString('it-IT') + ' · ' +
+          (rev.reason || 'Prima della modifica') + ' · ' + rev.snapshot.entries.length + ' voci') +
+        '</option>').join('');
+      if (versions.some(v => String(v.id) === selected)) selector.value = selected;
+    } catch (error) {
+      setStatus('Impossibile leggere le versioni: ' + error.message, true);
+    }
+  }
+
+  function diffEntries(left, right) {
+    const summary = entries => {
+      const map = new Map();
+      (entries || []).forEach(item => {
+        const key = item.name.toLowerCase().normalize('NFKC');
+        const previous = map.get(key) || { name: item.name, quantity: 0 };
+        previous.quantity += item.quantity;
+        map.set(key, previous);
+      });
+      return map;
+    };
+    const a = summary(left), b = summary(right), added = [], removed = [];
+    for (const [key, item] of b) {
+      const change = item.quantity - (a.get(key)?.quantity || 0);
+      if (change > 0) added.push('+ ' + change + ' ' + item.name);
+    }
+    for (const [key, item] of a) {
+      const change = item.quantity - (b.get(key)?.quantity || 0);
+      if (change > 0) removed.push('− ' + change + ' ' + item.name);
+    }
+    return { added, removed };
+  }
+
+  async function compareVersion() {
+    if (!deck || !current) return;
+    const revisionId = Number($('archiveVersionSelect').value);
+    if (!revisionId) return setStatus('Seleziona prima una versione.', true);
+    try {
+      const older = (await store.listRevisions(deck.id)).find(v => v.id === revisionId);
+      if (!older) return setStatus('Versione non trovata.', true);
+      const diff = diffEntries(older.snapshot.entries, current.entries);
+      $('archiveVersionDiff').innerHTML =
+        '<b>Confronto tra la versione selezionata e quella attuale</b>' +
+        '<div class="archiveDiffColumns"><div><strong>Aggiunte (' + diff.added.length +
+        ')</strong><ul>' + (diff.added.length ? diff.added.map(line => '<li>' + escapeHtml(line) + '</li>').join('') :
+          '<li>Nessuna</li>') + '</ul></div><div><strong>Eliminate (' + diff.removed.length +
+        ')</strong><ul>' + (diff.removed.length ? diff.removed.map(line => '<li>' + escapeHtml(line) + '</li>').join('') :
+          '<li>Nessuna</li>') + '</ul></div></div>';
+    } catch (error) { setStatus(error.message, true); }
+  }
+
+  async function saveVersion() {
+    if (!deck || !current) return setStatus('Salva prima una lista.', true);
+    const label = prompt('Nome della versione, per esempio: Versione 2 — più ramp', 'Versione salvata');
+    if (label === null) return;
+    try {
+      await store.labelVersion(deck.id, label);
+      await renderVersions();
+      setStatus('Versione salvata. Potrai confrontarla o ripristinarla.');
+    } catch (error) { setStatus('Non riesco a salvare la versione: ' + error.message, true); }
+  }
+
+  async function restoreVersion() {
+    if (!deck || busy) return;
+    const revisionId = Number($('archiveVersionSelect').value);
+    if (!revisionId) return setStatus('Seleziona una versione da ripristinare.', true);
+    if (!confirm('Ripristinare questa lista? Quella attuale verrà conservata nelle versioni precedenti.')) return;
+    setBusy(true);
+    try {
+      const deckId = deck.id;
+      const restored = await store.restoreVersion(deckId, revisionId);
+      if (!deck || deck.id !== deckId) return;
+      current = restored;
+      $('archivePaste').value = listAsText(restored);
+      $('archiveVersionDiff').innerHTML = '';
+      await renderVersions();
+      await renderArchive();
+      if (window.DeckCycleApp) window.DeckCycleApp.onListSaved(deckId, restored.updatedAt);
+      setStatus('Versione ripristinata. La lista precedente resta recuperabile.');
+    } catch (error) { setStatus('Ripristino non riuscito: ' + error.message, true); }
+    finally { setBusy(false); }
+  }
+
   async function open(deckRecord) {
     if (!store || !deckRecord) return;
     deck = { id: deckRecord.id, name: deckRecord.name };
@@ -139,6 +230,7 @@
         ' Le immagini sono recuperate online da Scryfall, i metadati già caricati sono disponibili offline.' :
         'Incolla una lista Moxfield. Sono supportate quantità, sezioni e codici set.');
       await renderArchive();
+      await renderVersions();
     } catch (error) {
       editor(true);
       setStatus('Archivio IndexedDB non disponibile: ' + error.message +
@@ -169,6 +261,8 @@
       setStatus('Lista salvata in IndexedDB. ' + warningCount(parsed.total) +
         ' Utilizza Esporta per salvare anche una copia esterna completa.');
       await renderArchive();
+      await renderVersions();
+      if (window.DeckCycleApp) window.DeckCycleApp.onListSaved(deckId, next.updatedAt);
       if (navigator.onLine !== false) await refresh(true);
     } catch (error) {
       setStatus('Lista non salvata: ' + error.message, true);
@@ -203,6 +297,9 @@
     $('archiveEditBtn').addEventListener('click', () => editor($('archiveEditor').classList.contains('hide')));
     $('archiveSaveBtn').addEventListener('click', save);
     $('archiveRefreshBtn').addEventListener('click', () => refresh(false));
+    $('archiveVersionSaveBtn').addEventListener('click', saveVersion);
+    $('archiveVersionCompareBtn').addEventListener('click', compareVersion);
+    $('archiveVersionRestoreBtn').addEventListener('click', restoreVersion);
     $('archiveImagesBtn').addEventListener('click', async () => {
       imagesVisible = !imagesVisible;
       $('archiveImagesBtn').textContent = imagesVisible ? 'Nascondi immagini' : 'Mostra immagini';
