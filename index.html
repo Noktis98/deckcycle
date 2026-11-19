@@ -193,6 +193,9 @@ textarea{min-height:100px;resize:vertical}
 .reveal{animation:reveal .45s ease}
 @keyframes reveal{0%{transform:translateY(14px);opacity:0}100%{transform:none;opacity:1}}
 .footer{padding:10px 2px 0;color:var(--muted);font-size:12px;text-align:center}
+.pwaStatus{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:0 0 14px;padding:11px 13px;border:1px solid var(--line);background:var(--panel2);color:var(--text);border-radius:14px;font-size:13px;line-height:1.45}
+.pwaStatus .pillBtn{padding:8px 12px;min-height:38px;white-space:nowrap}
+.pwaStatus [hidden]{display:none !important}
 .hide{display:none !important}
 @media (max-width: 960px){
   .layout{grid-template-columns:1fr}
@@ -237,6 +240,10 @@ textarea{min-height:100px;resize:vertical}
       <input type="file" id="importFile" accept="application/json" class="hide">
     </div>
   </header>
+  <div class="pwaStatus hide" id="pwaStatus" role="status" aria-live="polite">
+    <span id="pwaStatusText"></span>
+    <button class="pillBtn" id="pwaUpdateBtn" type="button" hidden>Aggiorna</button>
+  </div>
 
   <div class="layout">
     <div class="stack">
@@ -982,10 +989,6 @@ applyTheme(); render();
 window.DeckCycleSafe.installCopiesButton(KEY);
 })();
 </script>
-<script>
-if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
-  window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(()=>{}));
-}
-</script>
+<script src="./pwa.js"></script>
 </body>
 </html>
