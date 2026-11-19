@@ -287,6 +287,16 @@
     return item;
   }
 
+  async function clearRoleOverride(deckId,name) {
+    const id=String(deckId)+'|'+String(name).toLowerCase().normalize('NFKC');
+    const db=await open();
+    const tx=db.transaction('roles','readwrite');
+    tx.objectStore('roles').delete(id);
+    await txResult(tx);
+    if(exportSnapshot) exportSnapshot.roles=(exportSnapshot.roles||[]).filter(x=>x.id!==id);
+    return true;
+  }
+
   function validateBackupArchive(archive) {
     if (archive == null) return { schemaVersion: 1, lists: [], artworks: [], revisions: [], roles: [] };
     if (!archive || ![1,2].includes(archive.schemaVersion) ||
@@ -559,6 +569,6 @@
     open, parseDecklist, saveBaseline, loadDeck, saveDeck, exportAll, warmExport, readyExport,
     validateBackupArchive, importAll, cachedCards, fetchScryfall, summarize, category, keyOf,
     listRevisions, labelVersion, restoreVersion, loadArtwork, setArtwork, removeArtwork,
-    getRoleOverrides, setRoleOverride
+    getRoleOverrides, setRoleOverride, clearRoleOverride
   };
 })();
