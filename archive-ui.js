@@ -61,6 +61,9 @@
       setStatus('Dati delle carte non disponibili: ' + error.message, true);
     }
     if (!deck || deck.id !== deckId) return;
+    let overrides=new Map();
+    try { overrides=await store.getRoleOverrides(deckId); } catch(error) {}
+    if (!deck || deck.id !== deckId) return;
     const summary = store.summarize(current.entries, cards);
     $('archiveMetrics').innerHTML = [
       '<span class="tag">' + summary.total + ' carte</span>',
@@ -102,6 +105,8 @@
         const img = image ? '<img class="archiveCardImage" loading="lazy" decoding="async" src="' + escapeHtml(image) + '" alt="">' : '';
         const url = 'https://scryfall.com/search?q=' + encodeURIComponent('!"' + entry.name + '"');
         const tag = entry.section === 'Commander' ? '<span class="archiveCommander">Comandante</span>' : '';
+        const roles = overrides.get(entry.name.toLowerCase().normalize('NFKC'));
+        const rolesLabel=roles ? (roles.length ? roles.join(', ') : 'nessuno') : 'automatici';
         return '<div class="archiveCard">' + img + '<div class="archiveCardCopy">' +
           '<div class="archiveCardName"><b>' + entry.quantity + '× ' + escapeHtml(entry.name) + '</b>' +
           tag + '</div><div class="archiveCardDetails">' +
@@ -109,11 +114,39 @@
             'Dati non ancora caricati da Scryfall') +
           (entry.set ? ' · ' + escapeHtml(entry.set.toUpperCase() + (entry.collector ? ' #' + entry.collector : '')) : '') +
           '</div><a href="' + escapeHtml(url) + '" target="_blank" rel="noopener noreferrer">Apri su Scryfall</a>' +
+          ' · <button class="miniBtn archiveRoleBtn" type="button" data-role-name="' + escapeHtml(entry.name) +
+          '" title="Classifica manualmente questa carta">Ruoli: ' + escapeHtml(rolesLabel) + '</button>' +
           '</div></div>';
       }).join('');
       markup += '</div>';
     }
     $('archiveCards').innerHTML = markup || '<div class="empty">Nessuna carta.</div>';
+  }
+
+  async function editCardRoles(name) {
+    if(!deck || !name)return;
+    const id=deck.id, supported=['ramp','draw','removal','protection','recursion'];
+    try {
+      const roles=await store.getRoleOverrides(id);
+      const currentRoles=roles.get(name.toLowerCase().normalize('NFKC'));
+      const previous=currentRoles ? currentRoles.join(', ') : 'auto';
+      const input=prompt('Ruoli per '+name+
+        '\nScrivi uno o più tra: ramp, draw, removal, protection, recursion.'+
+        '\nScrivi "auto" per usare il testo Oracle, oppure lascia vuoto per nessun ruolo.',previous);
+      if(input===null)return;
+      const words=input.split(/[,;\s]+/).map(x=>x.trim().toLowerCase()).filter(Boolean);
+      if(input.trim().toLowerCase()==='auto'){
+        await store.clearRoleOverride(id,name);
+      }else{
+        const invalid=words.filter(x=>!supported.includes(x));
+        if(invalid.length) return setStatus('Ruoli non riconosciuti: '+invalid.join(', '),true);
+        await store.setRoleOverride(id,name,words);
+      }
+      if(!deck || deck.id!==id)return;
+      await renderArchive();
+      window.DeckCycleExtras?.renderAnalysis();
+      setStatus('Classificazione salvata. Verrà inclusa nel backup completo.');
+    }catch(error){setStatus('Ruoli non salvati: '+error.message,true)}
   }
 
   async function renderVersions() {
@@ -300,6 +333,10 @@
     $('archiveVersionSaveBtn').addEventListener('click', saveVersion);
     $('archiveVersionCompareBtn').addEventListener('click', compareVersion);
     $('archiveVersionRestoreBtn').addEventListener('click', restoreVersion);
+    $('archiveCards').addEventListener('click',e=>{
+      const button=e.target.closest('[data-role-name]');
+      if(button)editCardRoles(button.dataset.roleName);
+    });
     $('archiveImagesBtn').addEventListener('click', async () => {
       imagesVisible = !imagesVisible;
       $('archiveImagesBtn').textContent = imagesVisible ? 'Nascondi immagini' : 'Mostra immagini';
