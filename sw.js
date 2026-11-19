@@ -1,5 +1,5 @@
 /* DeckCycle Fase 0: aggiornamenti affidabili e offline solo per file locali. */
-const CACHE = 'deckcycle-phase0-v2';
+const CACHE = 'deckcycle-phase1-v3';
 const CORE = ['./', './index.html', './safeguards.js', './manifest.webmanifest',
   './icon-180.png', './icon-192.png', './icon-512.png'];
 
