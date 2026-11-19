@@ -156,9 +156,11 @@
     const db = await open();
     const tx = db.transaction(['lists', 'revisions'], 'readwrite');
     const listStore = tx.objectStore('lists');
+    let previous=null;
     const request = listStore.get(payload.deckId);
     request.onsuccess = () => {
       if (request.result) {
+        previous=request.result;
         tx.objectStore('revisions').add({
           deckId: payload.deckId, at: Date.now(), reason: 'Prima della modifica', snapshot: request.result
         });
@@ -167,6 +169,12 @@
     };
     await txResult(tx);
     if (exportSnapshot) {
+      if(previous){
+        exportSnapshot.revisions=exportSnapshot.revisions || [];
+        exportSnapshot.revisions.unshift({
+          deckId:payload.deckId,at:Date.now(),reason:'Prima della modifica',snapshot:previous
+        });
+      }
       const i = exportSnapshot.lists.findIndex(item => item.deckId === payload.deckId);
       if (i === -1) exportSnapshot.lists.push(payload);
       else exportSnapshot.lists[i] = payload;
