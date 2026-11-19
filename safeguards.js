@@ -226,7 +226,7 @@
 
   async function importData(file, options) {
     if (!file) return false;
-    if (file.size > 12 * 1024 * 1024) {
+    if (file.size > 35 * 1024 * 1024) {
       notifyWarning('Backup troppo grande per questo archivio. Nessun dato modificato.');
       return false;
     }
