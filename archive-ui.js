@@ -85,7 +85,7 @@
     const groups = new Map();
     current.entries.forEach(entry => {
       const card = cards.get(store.keyOf(entry));
-      const group = card ? store.category(card) : 'Da identificare';
+      const group = entry.section === 'Commander' ? 'Commander' : (card ? store.category(card) : 'Da identificare');
       if (!groups.has(group)) groups.set(group, []);
       groups.get(group).push({ entry, card });
     });
