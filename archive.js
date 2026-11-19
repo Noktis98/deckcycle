@@ -4,7 +4,7 @@
 (function () {
   'use strict';
   const DB_NAME = 'deckcycle_archive_v1';
-  const DB_VERSION = 1;
+  const DB_VERSION = 2;
   const MAX_ENTRIES = 600;
   const CARD_AGE = 90 * 86400000;
   const GROUPS = ['Creature', 'Planeswalker', 'Artefatti', 'Incantesimi', 'Istantanei', 'Stregonerie', 'Terre', 'Battaglie', 'Altro'];
@@ -25,6 +25,7 @@
         if (!db.objectStoreNames.contains('cards')) db.createObjectStore('cards', { keyPath: 'cacheKey' });
         if (!db.objectStoreNames.contains('revisions')) db.createObjectStore('revisions', { keyPath: 'id', autoIncrement: true });
         if (!db.objectStoreNames.contains('meta')) db.createObjectStore('meta', { keyPath: 'key' });
+        if (!db.objectStoreNames.contains('artworks')) db.createObjectStore('artworks', { keyPath: 'deckId' });
       };
       request.onsuccess = () => {
         const db = request.result;
@@ -191,8 +192,26 @@
   }
 
   async function exportAll() {
-    const lists = await getAll('lists');
-    return { schemaVersion: 1, lists: lists.map(asList) };
+    const [lists, artworks, revisions] = await Promise.all([
+      getAll('lists'), getAll('artworks'), getAll('revisions')
+    ]);
+    // Evita backup illimitati: mantenere solo le ultime 12 versioni per mazzo.
+    const byDeck = new Map();
+    revisions.sort((a, b) => (b.at || 0) - (a.at || 0)).forEach(item => {
+      if (!item || !item.snapshot || !item.deckId) return;
+      const arr = byDeck.get(item.deckId) || [];
+      if (arr.length < 12) arr.push({
+        deckId: item.deckId, at: item.at, reason: item.reason || '',
+        snapshot: asList(item.snapshot)
+      });
+      byDeck.set(item.deckId, arr);
+    });
+    return {
+      schemaVersion: 2,
+      lists: lists.map(asList),
+      artworks: artworks.map(validateArtwork),
+      revisions: Array.from(byDeck.values()).flat()
+    };
   }
 
   function warmExport() {
@@ -207,43 +226,86 @@
   function readyExport() {
     // Restituisce una fotografia sincrona: non perde la user gesture
     // richiesta dal menu Condividi di Safari/iOS.
-    return exportSnapshot ? {schemaVersion: 1, lists: exportSnapshot.lists.map(item => ({
-      ...item, entries: item.entries.map(entry => ({ ...entry }))
-    }))} : null;
+    return exportSnapshot ? {
+      schemaVersion: exportSnapshot.schemaVersion,
+      lists: exportSnapshot.lists.map(item => ({
+        ...item, entries: item.entries.map(entry => ({ ...entry }))
+      })),
+      artworks: (exportSnapshot.artworks || []).map(item => ({...item})),
+      revisions: (exportSnapshot.revisions || []).map(item => ({
+        ...item, snapshot: {...item.snapshot, entries: item.snapshot.entries.map(entry => ({...entry}))}
+      }))
+    } : null;
+  }
+
+  function validateArtwork(item) {
+    if (!item || typeof item.deckId !== 'string' || !item.deckId ||
+        item.deckId.length > 250 || typeof item.dataUrl !== 'string' ||
+        item.dataUrl.length > 550000 ||
+        !/^data:image\/(?:jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(item.dataUrl)) {
+      throw new Error('Artwork personalizzato non valido o troppo grande.');
+    }
+    return {
+      deckId: item.deckId, dataUrl: item.dataUrl,
+      name: String(item.name || 'Artwork personalizzato').slice(0, 200),
+      at: String(item.at || new Date().toISOString())
+    };
   }
 
   function validateBackupArchive(archive) {
-    if (archive == null) return [];
-    if (!archive || archive.schemaVersion !== 1 || !Array.isArray(archive.lists) ||
-        archive.lists.length > 2000) {
+    if (archive == null) return { schemaVersion: 1, lists: [], artworks: [], revisions: [] };
+    if (!archive || ![1,2].includes(archive.schemaVersion) ||
+        !Array.isArray(archive.lists) || archive.lists.length > 2000) {
       throw new Error('Formato delle liste nel backup non riconosciuto.');
     }
     const seen = new Set();
-    return archive.lists.map(item => {
+    const lists = archive.lists.map(item => {
       const row = asList(item);
       if (seen.has(row.deckId)) throw new Error('Lista duplicata nel backup.');
       seen.add(row.deckId);
       return row;
     });
+    const arts = archive.artworks || [];
+    const versions = archive.revisions || [];
+    if (!Array.isArray(arts) || arts.length > 80 ||
+        !Array.isArray(versions) || versions.length > 3000) {
+      throw new Error('Troppe immagini o versioni nel backup.');
+    }
+    const artworkIds = new Set();
+    const artworks = arts.map(item => {
+      const art = validateArtwork(item);
+      if (artworkIds.has(art.deckId)) throw new Error('Artwork duplicato nel backup.');
+      artworkIds.add(art.deckId);
+      return art;
+    });
+    const revisions = versions.map(item => {
+      if (!item || typeof item.deckId !== 'string' || !item.snapshot ||
+          item.snapshot.deckId !== item.deckId) throw new Error('Versione non valida nel backup.');
+      return { deckId: item.deckId, at: Number(item.at)||Date.now(),
+        reason: String(item.reason || '').slice(0, 150), snapshot: asList(item.snapshot) };
+    });
+    return { schemaVersion: archive.schemaVersion, lists, artworks, revisions };
   }
 
   async function importAll(archive) {
-    const lists = validateBackupArchive(archive);
-    if (!lists.length) return 0;
-    // Conserviamo anche liste di mazzi eliminati: non sovrascrivono lo
-    // storico e possono essere recuperate da futuri strumenti di ripristino.
+    const validated = validateBackupArchive(archive);
+    const { lists, artworks, revisions } = validated;
+    if (!lists.length && !artworks.length && !revisions.length) return 0;
+    // Un'unica transazione IndexedDB atomica: nessun import parziale.
     const db = await open();
-    const tx = db.transaction(['lists', 'revisions'], 'readwrite');
-    const store = tx.objectStore('lists');
+    const tx = db.transaction(['lists', 'revisions', 'artworks'], 'readwrite');
+    const listStore = tx.objectStore('lists');
     lists.forEach(item => {
-      const req = store.get(item.deckId);
+      const req = listStore.get(item.deckId);
       req.onsuccess = () => {
         if (req.result) tx.objectStore('revisions').add({
           deckId: item.deckId, at: Date.now(), reason: 'Prima di importare backup', snapshot: req.result
         });
-        store.put(item);
+        listStore.put(item);
       };
     });
+    artworks.forEach(item => tx.objectStore('artworks').put(item));
+    revisions.forEach(item => tx.objectStore('revisions').add(item));
     await txResult(tx);
     if (exportSnapshot) {
       lists.forEach(item => {
@@ -251,8 +313,69 @@
         if (i === -1) exportSnapshot.lists.push(item);
         else exportSnapshot.lists[i] = item;
       });
+      artworks.forEach(item => {
+        const i = (exportSnapshot.artworks || []).findIndex(saved => saved.deckId === item.deckId);
+        if (i === -1) exportSnapshot.artworks.push(item);
+        else exportSnapshot.artworks[i] = item;
+      });
+      exportSnapshot.revisions = null;
+      warmExport().catch(() => {});
     }
     return lists.length;
+  }
+
+  async function listRevisions(deckId) {
+    const data = (await getAll('revisions')).filter(x => x.deckId === String(deckId) && x.snapshot);
+    return data.sort((a, b) => (b.at || 0) - (a.at || 0) || (b.id || 0) - (a.id || 0)).slice(0, 30);
+  }
+
+  async function labelVersion(deckId, reason) {
+    const snapshot = await loadDeck(deckId);
+    if (!snapshot) throw new Error('Salva prima una lista di carte.');
+    const db = await open();
+    const tx = db.transaction('revisions', 'readwrite');
+    tx.objectStore('revisions').add({
+      deckId: String(deckId), at: Date.now(),
+      reason: String(reason || 'Versione salvata').slice(0, 150),
+      snapshot: asList(snapshot)
+    });
+    await txResult(tx);
+    // Aggiorna snapshot prima della prossima esportazione.
+    if (exportSnapshot) exportSnapshot.revisions = (await getAll('revisions'))
+      .sort((a,b)=>(b.at||0)-(a.at||0)).slice(0,100);
+    return true;
+  }
+
+  async function restoreVersion(deckId, revisionId) {
+    const item = await get('revisions', Number(revisionId));
+    if (!item || item.deckId !== deckId || !item.snapshot) throw new Error('Versione non trovata.');
+    return saveDeck(deckId, item.snapshot.entries, item.snapshot.raw);
+  }
+
+  async function setArtwork(deckId, dataUrl, name) {
+    const art = validateArtwork({ deckId, dataUrl, name, at: new Date().toISOString() });
+    const db = await open();
+    const tx = db.transaction('artworks', 'readwrite');
+    tx.objectStore('artworks').put(art);
+    await txResult(tx);
+    if (exportSnapshot) {
+      const i = (exportSnapshot.artworks || []).findIndex(x => x.deckId === art.deckId);
+      if (i < 0) exportSnapshot.artworks.push(art); else exportSnapshot.artworks[i] = art;
+    }
+    return art;
+  }
+
+  async function loadArtwork(deckId) {
+    return get('artworks', String(deckId));
+  }
+
+  async function removeArtwork(deckId) {
+    const db = await open();
+    const tx = db.transaction('artworks', 'readwrite');
+    tx.objectStore('artworks').delete(String(deckId));
+    await txResult(tx);
+    if (exportSnapshot) exportSnapshot.artworks = (exportSnapshot.artworks || []).filter(x => x.deckId !== deckId);
+    return true;
   }
 
   function keyOf(entry) {
@@ -265,6 +388,8 @@
     return {
       name: card.name || '', type: card.type_line || '',
       manaCost: card.mana_cost || (face && face.mana_cost) || '',
+      oracleText: card.oracle_text || (card.card_faces || []).map(f => f.oracle_text || '').join(' / ') || '',
+      keywords: Array.isArray(card.keywords) ? card.keywords.slice(0, 40) : [],
       cmc: Number(card.cmc) || 0,
       image: images.small || images.normal || '',
       scryfall: card.scryfall_uri || '',
@@ -389,6 +514,7 @@
 
   window.DeckCycleArchive = {
     open, parseDecklist, saveBaseline, loadDeck, saveDeck, exportAll, warmExport, readyExport,
-    validateBackupArchive, importAll, cachedCards, fetchScryfall, summarize, category, keyOf
+    validateBackupArchive, importAll, cachedCards, fetchScryfall, summarize, category, keyOf,
+    listRevisions, labelVersion, restoreVersion, loadArtwork, setArtwork, removeArtwork
   };
 })();
