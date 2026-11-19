@@ -156,6 +156,9 @@ textarea{min-height:100px;resize:vertical}
 .timeCard{display:grid;grid-template-columns:1fr auto;gap:10px;padding:12px;border-radius:16px;border:1px solid var(--line);background:linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01))}
 .timeTitle{font-weight:800}
 .timeMeta{font-size:12px;color:var(--muted);margin-top:4px}
+.historyActions{display:flex;justify-content:flex-end;gap:7px;align-items:center;margin-top:8px}
+.historyActions .miniBtn{min-height:36px}
+.historyControls{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px}
 .resultWin{color:var(--green);font-weight:900}.resultLoss{color:var(--red);font-weight:900}
 .empty{padding:24px 16px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:18px;background:rgba(255,255,255,.02)}
 .rankList{display:grid;gap:10px}
@@ -342,6 +345,10 @@ textarea{min-height:100px;resize:vertical}
           </div>
         </div>
         <div id="history" class="timeline"></div>
+        <div class="historyControls">
+          <span class="sectionSub" id="historyCount" aria-live="polite"></span>
+          <button id="historyMoreBtn" class="pillBtn hide" type="button">Mostra altre 60 partite</button>
+        </div>
       </section>
 
       <section class="card section reveal">
@@ -358,8 +365,9 @@ textarea{min-height:100px;resize:vertical}
         <div class="sectionHeader">
           <div>
             <div class="sectionTitle">Risultati per mese</div>
-            <div class="sectionSub">Panoramica rapida delle ultime partite.</div>
+            <div class="sectionSub">Risultati separati per anno, senza sommare anni diversi.</div>
           </div>
+          <select id="monthsYear" class="pillBtn" aria-label="Anno dei risultati" style="width:auto;max-width:150px"></select>
         </div>
         <div id="months" class="monthGrid"></div>
       </section>
@@ -443,15 +451,51 @@ textarea{min-height:100px;resize:vertical}
   </div>
 </div>
 
+
+<div class="modalBg" id="historyEditModal">
+  <div class="modal">
+    <div class="modalHead">
+      <div class="modalTitle">Correggi una partita</div>
+      <button class="iconBtn" type="button" data-close="historyEditModal" aria-label="Chiudi">✕</button>
+    </div>
+    <p class="note" id="historyEditDeck">Partita</p>
+    <div class="modalGrid">
+      <div>
+        <label class="sectionSub" for="historyEditResult">Risultato</label>
+        <select id="historyEditResult"><option value="win">🏆 Vittoria</option><option value="loss">💀 Sconfitta</option></select>
+        <label class="sectionSub" style="display:block;margin-top:12px" for="historyEditOpponents">Avversari</label>
+        <input class="field" id="historyEditOpponents">
+        <label class="sectionSub" style="display:block;margin-top:12px" for="historyEditEnemy">Comandanti affrontati</label>
+        <input class="field" id="historyEditEnemy">
+      </div>
+      <div>
+        <label class="sectionSub" for="historyEditNotes">Note</label>
+        <textarea id="historyEditNotes" placeholder="Come è andata la partita?"></textarea>
+        <p class="note">Correggere vittoria o sconfitta aggiorna subito le statistiche senza cambiare il giro dei mazzi.</p>
+      </div>
+    </div>
+    <div class="row" style="justify-content:space-between;margin-top:16px">
+      <button class="danger" id="historyDeleteBtn" type="button">Elimina partita</button>
+      <div class="row">
+        <button class="secondary" data-close="historyEditModal" type="button">Annulla</button>
+        <button class="primary" id="historySaveBtn" type="button">Salva correzione</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="./safeguards.js"></script>
 <script>
 (() => {
 const KEY = 'deckcycle_magic_v1';
 const $ = id => document.getElementById(id);
-const DEFAULT_STATE = {decks:[], history:[], round:1, selected:null, theme:'magic', filters:{q:'', color:'', bracket:'', only:false}};
+const DEFAULT_STATE = {decks:[], history:[], round:1, roundOrigin:'manual', selected:null, selectedManually:false, theme:'magic', filters:{q:'', color:'', bracket:'', only:false}};
 let state = load();
 let editId = null;
 let pendingResult = null;
+let editingHistoryId = null;
+let historyVisibleCount = 60;
+let selectedMonthYear = null;
 
 function uid(){return Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4)}
 function load(){return window.DeckCycleSafe.load(KEY, DEFAULT_STATE, normalizeDeck, uid)}
@@ -502,18 +546,17 @@ function totalStats(){
 function activeDecks(){return state.decks.filter(d=>!d.paused)}
 function matchesFilters(d){
   const q = (state.filters.q||'').trim().toLowerCase();
-  if(q && !(d.name.toLowerCase().includes(q) || d.commander.toLowerCase().includes(q) || d.strategy.toLowerCase().includes(q))) return false;
-  if(state.filters.color && !d.colors.includes(state.filters.color.split('')[0]) && d.colors !== state.filters.color) {
-    // if filter is multicolor exact-ish, require all selected colors contained
-    const wanted = state.filters.color.split('');
-    if(!wanted.every(c => d.colors.includes(c))) return false;
+  if(q && !(d.name.toLowerCase().includes(q) || d.commander.toLowerCase().includes(q) || String(d.strategy||'').toLowerCase().includes(q))) return false;
+  const wanted = state.filters.color || '';
+  if(wanted){
+    // Un colore = contiene il colore; gilda / 5 colori = identità cromatica esatta.
+    if(wanted.length === 1 ? !d.colors.includes(wanted) : d.colors !== wanted) return false;
   }
   if(state.filters.bracket && String(d.bracket||'') !== String(state.filters.bracket)) return false;
   if(state.filters.only && (d.played || d.paused)) return false;
   return true;
 }
 function drawPool(){return state.decks.filter(d => !d.paused && !d.played && matchesFilters(d))}
-function eligiblePool(){return state.decks.filter(d => !d.paused && matchesFilters(d))}
 function manaIcons(colors){
   const arr = (colors||'').split('').filter(Boolean);
   return arr.length ? arr.map(c=>`<span class="mana m${c}">${c}</span>`).join('') : `<span class="mana mC">C</span>`;
@@ -529,16 +572,43 @@ function hexAlpha(hex,a){
   const v = hex.replace('#','');
   const n = parseInt(v,16); const r=(n>>16)&255, g=(n>>8)&255, b=n&255; return `rgba(${r},${g},${b},${a})`;
 }
+function advanceRound(origin){
+  state.round += 1;
+  state.roundOrigin = origin;
+  // Anche i mazzi in pausa ripartiranno come disponibili quando saranno riattivati.
+  state.decks.forEach(d => { d.played = false; });
+  state.selected = null;
+  state.selectedManually = false;
+}
 function maybeAdvanceRound(){
   const active = activeDecks();
-  if(!active.length) return false;
-  if(active.every(d => d.played)){
-    state.round += 1;
-    active.forEach(d => d.played = false);
-    toast('Nuovo giro iniziato automaticamente.');
-    return true;
+  if(!active.length || !active.every(d => d.played)) return false;
+  const last = state.history.at(-1);
+  if(last && Number(last.round||1) === state.round) last.closedRoundAutomatically = true;
+  advanceRound('auto');
+  toast('Tutti i mazzi attivi giocati: nuovo giro iniziato automaticamente.');
+  return true;
+}
+function syncPlayedWithCurrentRound(){
+  const used = new Set(state.history.filter(h => Number(h.round||1) === state.round).map(h => h.deckId));
+  state.decks.forEach(d => { d.played = used.has(d.id); });
+}
+function afterHistoryRemoval(removed){
+  // Regressione del giro SOLO se l'ultima partita lo aveva chiuso automaticamente
+  // e nel giro successivo non è ancora stata registrata alcuna partita.
+  if(removed.closedRoundAutomatically &&
+     state.roundOrigin === 'auto' &&
+     state.round === Number(removed.round||1) + 1 &&
+     !state.history.some(h => Number(h.round||1) === state.round)){
+    // Un secondo risultato manuale dello stesso mazzo può aver già completato il giro.
+    const usedBefore = new Set(state.history.filter(h => Number(h.round||1) === Number(removed.round||1)).map(h => h.deckId));
+    const stillComplete = activeDecks().length > 0 && activeDecks().every(d => usedBefore.has(d.id));
+    if(!stillComplete){
+      state.round = Number(removed.round||1);
+      state.roundOrigin = 'manual';
+    }
   }
-  return false;
+  syncPlayedWithCurrentRound();
 }
 function renderHero(){
   const d = getDeck(state.selected);
@@ -594,34 +664,63 @@ function renderDeckList(){
 }
 function renderHistory(){
   const box = $('history');
-  const items = [...state.history].sort((a,b)=>new Date(b.at)-new Date(a.at));
-  if(!items.length){box.innerHTML = `<div class="empty">Nessuna partita registrata.</div>`; return}
-  box.innerHTML = items.slice(0,60).map(h=>`<div class="timeCard">
+  const items = [...state.history].sort((a,b) => new Date(b.at) - new Date(a.at));
+  const shown = items.slice(0, historyVisibleCount);
+  $('historyCount').textContent = items.length ? `Visualizzate ${shown.length} di ${items.length} partite` : '';
+  $('historyMoreBtn').classList.toggle('hide', shown.length >= items.length);
+  if(!items.length){ box.innerHTML = `<div class="empty">Nessuna partita registrata.</div>`; return; }
+  box.innerHTML = shown.map(h=>`<div class="timeCard">
     <div>
       <div class="timeTitle">${escapeHtml(h.name)} <span class="${h.result==='win'?'resultWin':'resultLoss'}">${h.result==='win'?'Vittoria':'Sconfitta'}</span></div>
-      <div class="timeMeta">${formatDate(h.at)} · Giro ${h.round || 1}${h.override ? ' · scelto manualmente' : ''}</div>
+      <div class="timeMeta">${formatDate(h.at)} · Giro ${escapeHtml(h.round || 1)}${h.override ? ' · scelto manualmente' : ''}${getDeck(h.deckId) ? '' : ' · mazzo eliminato'}</div>
       ${h.opponents ? `<div class="timeMeta">Avversari: ${escapeHtml(h.opponents)}</div>` : ''}
       ${h.enemy ? `<div class="timeMeta">Comandanti affrontati: ${escapeHtml(h.enemy)}</div>` : ''}
       ${h.notes ? `<div class="timeMeta">Note: ${escapeHtml(h.notes)}</div>` : ''}
+      <div class="historyActions"><button class="miniBtn" type="button" data-history-action="edit" data-history-id="${escapeHtml(h.id)}">Correggi</button></div>
     </div>
     <div class="${h.result==='win'?'resultWin':'resultLoss'}">${h.result==='win'?'🏆':'💀'}</div>
   </div>`).join('');
 }
 function renderRanking(){
   const box = $('ranking');
-  if(!state.decks.length){box.innerHTML = `<div class="empty">Aggiungi dei mazzi per vedere la classifica.</div>`;return}
-  const rows = state.decks.map(d=>({d,...deckStats(d)})).sort((a,b)=> (b.games?b.rate:-1) - (a.games?a.rate:-1) || b.games-a.games || a.d.name.localeCompare(b.d.name));
-  box.innerHTML = rows.slice(0,10).map(r=>`<div class="rankRow">
-    <div>${escapeHtml(r.d.name)}</div>
-    <div class="track"><span style="width:${Math.max(r.games? r.rate : 0, 3)}%"></span></div>
+  const rows = state.decks.map(d => ({name:d.name, ...deckStats(d), deleted:false}));
+  const deleted = new Map();
+  state.history.forEach(h => {
+    if(getDeck(h.deckId)) return;
+    const id = h.deckId || 'name:' + h.name;
+    if(!deleted.has(id)) deleted.set(id, {name:h.name || 'Mazzo eliminato',games:0,wins:0,losses:0,deleted:true});
+    const item = deleted.get(id);
+    item.games++;
+    if(h.result === 'win') item.wins++; else item.losses++;
+  });
+  deleted.forEach(item => { item.rate = item.games ? Math.round(item.wins / item.games * 100) : 0; rows.push(item); });
+  if(!rows.length){box.innerHTML = `<div class="empty">Aggiungi dei mazzi per vedere la classifica.</div>`;return}
+  rows.sort((a,b) => (b.games?b.rate:-1) - (a.games?a.rate:-1) || b.games - a.games || a.name.localeCompare(b.name));
+  box.innerHTML = rows.map(r=>`<div class="rankRow">
+    <div>${escapeHtml(r.name)}${r.deleted ? ' <span class="timeMeta">(eliminato)</span>' : ''}</div>
+    <div class="track"><span style="width:${Math.max(r.games ? r.rate : 0, 3)}%"></span></div>
     <div>${r.games ? `${r.rate}% · ${r.games}` : '—'}</div>
   </div>`).join('');
 }
 function renderMonths(){
   const box = $('months');
+  const select = $('monthsYear');
+  const today = new Date().getFullYear();
+  const years = [...new Set([today, ...state.history.map(h => new Date(h.at).getFullYear()).filter(Number.isInteger)])].sort((a,b)=>b-a);
+  if(selectedMonthYear == null || !years.includes(selectedMonthYear)){
+    selectedMonthYear = years.includes(today) ? today : years[0];
+  }
+  select.innerHTML = years.map(y => `<option value="${y}">${y}</option>`).join('');
+  select.value = String(selectedMonthYear);
   const monthNames = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
   const map = Array.from({length:12},(_,i)=>({i,w:0,l:0}));
-  state.history.forEach(h=>{const d=new Date(h.at); if(!isNaN(d)){const m=map[d.getMonth()]; h.result==='win'?m.w++:m.l++}});
+  state.history.forEach(h => {
+    const date = new Date(h.at);
+    if(!isNaN(date) && date.getFullYear() === selectedMonthYear){
+      const month = map[date.getMonth()];
+      if(h.result === 'win') month.w++; else month.l++;
+    }
+  });
   box.innerHTML = map.map(m=>`<div class="monthBox"><b>${monthNames[m.i]}</b>${m.w}W · ${m.l}L</div>`).join('');
 }
 function render(){
@@ -661,13 +760,13 @@ function addDeckFromForm(e){
 }
 function ensureRoundForDraw(){
   if(drawPool().length) return true;
-  const eligible = eligiblePool();
-  if(eligible.length && eligible.every(d=>d.played)){
-    state.round += 1;
-    state.decks.forEach(d=>{ if(!d.paused) d.played = false; });
+  const active = activeDecks();
+  // Con i filtri non è mai lecito ricominciare se esiste ancora un mazzo
+  // attivo non giocato, anche quando è temporaneamente nascosto.
+  if(active.length && active.every(d => d.played)){
+    advanceRound('auto');
     save(); render();
-    toast('Tutti i mazzi attivi sono stati giocati: nuovo giro iniziato.');
-    return true;
+    toast('Nuovo giro: tutti i mazzi attivi erano già stati giocati.');
   }
   return drawPool().length > 0;
 }
@@ -684,6 +783,7 @@ async function animateDraw(){
     const iv = setInterval(()=>{reel.textContent = names[Math.floor(Math.random()*names.length)]; ticks++; if(ticks > 16){clearInterval(iv); resolve();}}, 95);
   });
   const selected = pool[Math.floor(Math.random()*pool.length)];
+  state.selectedManually = false;
   reel.classList.remove('roll');
   reel.textContent = selected.name;
   state.selected = selected.id;
@@ -723,7 +823,7 @@ function showGlow(id){const el=$(id); el.classList.remove('show'); void el.offse
 function registerResult(){
   const d = getDeck(state.selected);
   if(!d || !pendingResult) return;
-  const override = d.played || d.paused;
+  const override = !!state.selectedManually || d.played || d.paused;
   state.history.push({id:uid(), deckId:d.id, name:d.name, round:state.round, at:new Date().toISOString(), result:pendingResult, override, opponents:$('recordOpponents').value.trim(), enemy:$('recordEnemy').value.trim(), notes:$('recordNotes').value.trim()});
   d.played = true;
   closeModal('recordModal');
@@ -731,6 +831,7 @@ function registerResult(){
   else{$('hero').classList.add('shake'); setTimeout(()=>$('hero').classList.remove('shake'), 500); showGlow('lossGlow'); toast('💀 Sconfitta registrata.');}
   pendingResult = null;
   state.selected = null;
+  state.selectedManually = false;
   maybeAdvanceRound();
   save(); render();
 }
@@ -770,26 +871,56 @@ function deleteDeck(){
   if(!confirm(`Eliminare il mazzo “${d.name}”?`)) return;
   if(!window.DeckCycleSafe.checkpoint(KEY, 'Prima di eliminare il mazzo', true, true)) return;
   state.decks = state.decks.filter(x=>x.id!==d.id);
-  if(state.selected===d.id) state.selected = null;
+  if(state.selected===d.id){ state.selected = null; state.selectedManually = false; }
   save(); render(); closeModal('editModal'); toast('Mazzo eliminato.');
 }
 function togglePauseCurrent(){ const d=getDeck(editId); if(!d) return; d.paused=!d.paused; save(); render(); renderEditPreview(d); }
 function newRound(){
   if(!state.decks.length) return;
   if(!confirm('Vuoi iniziare un nuovo giro? Le statistiche restano salvate.')) return;
-  state.round += 1; state.decks.forEach(d=>{if(!d.paused)d.played=false}); state.selected=null; save(); render(); toast('Nuovo giro avviato.');
+  advanceRound('manual'); save(); render(); toast('Nuovo giro avviato.');
+}
+function openHistoryEdit(id){
+  const h = state.history.find(x => x.id === id);
+  if(!h) return toast('Partita non trovata.');
+  editingHistoryId = id;
+  $('historyEditDeck').textContent = `${h.name} · ${formatDate(h.at)} · Giro ${h.round || 1}`;
+  $('historyEditResult').value = h.result;
+  $('historyEditOpponents').value = h.opponents || '';
+  $('historyEditEnemy').value = h.enemy || '';
+  $('historyEditNotes').value = h.notes || '';
+  openModal('historyEditModal');
+}
+function saveHistoryEdit(){
+  const h = state.history.find(x => x.id === editingHistoryId);
+  if(!h) return toast('Partita non trovata.');
+  if(!window.DeckCycleSafe.checkpoint(KEY, 'Prima di correggere una partita', true, true)) return;
+  h.result = $('historyEditResult').value === 'win' ? 'win' : 'loss';
+  h.opponents = $('historyEditOpponents').value.trim();
+  h.enemy = $('historyEditEnemy').value.trim();
+  h.notes = $('historyEditNotes').value.trim();
+  if(!save()) return;
+  closeModal('historyEditModal');
+  editingHistoryId = null;
+  render();
+  toast('Partita corretta. Statistiche aggiornate.');
+}
+function removeHistory(h){
+  if(!h) return toast('Partita non trovata.');
+  if(!confirm(`Eliminare il risultato di “${h.name}” del ${formatDate(h.at)}?`)) return;
+  if(!window.DeckCycleSafe.checkpoint(KEY, 'Prima di eliminare una partita', true, true)) return;
+  state.history = state.history.filter(x => x.id !== h.id);
+  afterHistoryRemoval(h);
+  if(!save()) return;
+  closeModal('historyEditModal');
+  editingHistoryId = null;
+  render();
+  toast('Partita eliminata. Giro e statistiche aggiornati.');
 }
 function undoLast(){
-  const h = state.history.at(-1); if(!h) return toast('Nessun risultato da annullare.');
-  if(!confirm(`Annullare l'ultimo risultato di ${h.name}?`)) return;
-  if(!window.DeckCycleSafe.checkpoint(KEY, 'Prima di annullare una partita', true, true)) return;
-  state.history.pop();
-  const d = getDeck(h.deckId);
-  if(d){
-    const stillInRound = state.history.some(x=>x.deckId===h.deckId && x.round===h.round);
-    if(!stillInRound && h.round===state.round) d.played=false;
-  }
-  save(); render(); toast('Ultimo risultato annullato.');
+  const h = state.history.at(-1);
+  if(!h) return toast('Nessun risultato da annullare.');
+  removeHistory(h);
 }
 function exportData(){window.DeckCycleSafe.exportData(state)}
 function importData(file){
@@ -811,6 +942,17 @@ $('lossBtn').addEventListener('click', ()=>openRecord('loss'));
 $('recordConfirmBtn').addEventListener('click', registerResult);
 $('newRoundBtn').addEventListener('click', newRound);
 $('undoBtn').addEventListener('click', undoLast);
+$('historyMoreBtn').addEventListener('click', ()=>{historyVisibleCount += 60; renderHistory()});
+$('monthsYear').addEventListener('change', e=>{selectedMonthYear=Number(e.target.value); renderMonths()});
+$('history').addEventListener('click', e=>{
+  const button = e.target.closest('[data-history-action="edit"]');
+  if(button) openHistoryEdit(button.dataset.historyId);
+});
+$('historySaveBtn').addEventListener('click', saveHistoryEdit);
+$('historyDeleteBtn').addEventListener('click', ()=>{
+  const h = state.history.find(x=>x.id===editingHistoryId);
+  removeHistory(h);
+});
 $('theme').addEventListener('change', e=>{state.theme=e.target.value; save(); render()});
 $('search').addEventListener('input', e=>{state.filters.q=e.target.value; render()});
 $('filterColor').addEventListener('change', e=>{state.filters.color=e.target.value; render()});
@@ -819,7 +961,7 @@ $('onlyAvailableBtn').addEventListener('click', ()=>{state.filters.only=!state.f
 $('deckList').addEventListener('click', e=>{
   const btn = e.target.closest('[data-action]'); if(!btn) return;
   const {action,id} = btn.dataset; const d = getDeck(id); if(!d) return;
-  if(action==='choose'){state.selected=id; save(); render(); toast(`Selezionato: ${d.name}`); window.scrollTo({top:0, behavior:'smooth'});}
+  if(action==='choose'){state.selected=id; state.selectedManually=true; save(); render(); toast(`Selezionato: ${d.name}`); window.scrollTo({top:0, behavior:'smooth'});}
   if(action==='pause'){d.paused=!d.paused; save(); render(); toast(d.paused ? 'Mazzo messo in pausa.' : 'Mazzo riattivato.');}
   if(action==='edit'){openEdit(id)}
 });
