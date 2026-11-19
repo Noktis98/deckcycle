@@ -379,7 +379,7 @@
 
   window.DeckCycleExtras={
     init,setTab,renderAnalysis,artFor,animateReel,prepareOpponents,collectOpponents,
-    artCache,showArtDeck,classify
+    hydrateArtworks,artCache,showArtDeck,classify
   };
   init();
 })();
