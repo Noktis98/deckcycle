@@ -989,16 +989,18 @@ function undoLast(){
   if(!h) return toast('Nessun risultato da annullare.');
   removeHistory(h);
 }
-async function exportData(){
-  try {
-    const archive = await window.DeckCycleArchive.exportAll();
-    window.DeckCycleSafe.exportData(state, archive);
-  } catch (error) {
-    if(confirm('Non riesco a leggere le liste IndexedDB (' + error.message +
-       '). Vuoi esportare soltanto mazzi e statistiche, SENZA liste delle carte?')){
-      window.DeckCycleSafe.exportData(state);
-    }
+function exportData(){
+  const archive = window.DeckCycleArchive.readyExport();
+  if(!archive){
+    toast('Sto preparando il backup delle liste. Riprova Esporta fra un momento.');
+    window.DeckCycleArchive.warmExport().catch(error=>{
+      alert('Non riesco a leggere l’archivio delle liste: ' + error.message +
+        '. Il backup completo non è disponibile su questo dispositivo.');
+    });
+    return;
   }
+  // Chiamata sincrona dal clic: mantiene il permesso per il menu Condividi iOS.
+  window.DeckCycleSafe.exportData(state, archive);
 }
 function importData(file){
   window.DeckCycleSafe.importData(file, {
@@ -1008,13 +1010,14 @@ function importData(file){
     },
     async afterSave(wrapper, next){
       if(wrapper && wrapper.archive){
-        await window.DeckCycleArchive.importAll(wrapper.archive, next.decks.map(d=>d.id));
+        await window.DeckCycleArchive.importAll(wrapper.archive);
       }
     },
     onSuccess(next){
       state = next;
       render();
       toast('Backup importato correttamente, incluse le liste se presenti.');
+      window.DeckCycleArchive.warmExport().catch(()=>{});
     }
   });
 }
@@ -1073,7 +1076,11 @@ document.addEventListener('keydown', e=>{if(e.key==='Escape') document.querySele
 applyTheme(); render();
 window.DeckCycleSafe.installCopiesButton(KEY);
 window.DeckCycleArchiveUI.init();
-window.DeckCycleArchive.saveBaseline(state).catch(error => console.warn('DeckCycle: archivio IndexedDB non disponibile:', error.message));
+window.DeckCycleArchive.saveBaseline(state).catch(error => console.warn('DeckCycle: copia di migrazione IndexedDB non disponibile:', error.message));
+window.DeckCycleArchive.warmExport().catch(error => console.warn('DeckCycle: export IndexedDB non disponibile:', error.message));
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState === 'visible') window.DeckCycleArchive.warmExport().catch(()=>{});
+});
 })();
 </script>
 <script src="./pwa.js"></script>
