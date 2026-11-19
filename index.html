@@ -562,6 +562,15 @@ let pendingResult = null;
 let editingHistoryId = null;
 let historyVisibleCount = 60;
 let selectedMonthYear = null;
+let archiveBackupError = null;
+function warmArchiveBackup(){
+  return window.DeckCycleArchive.warmExport().then(()=>{
+    archiveBackupError = null;
+  }).catch(error=>{
+    archiveBackupError = error.message;
+    console.warn('DeckCycle: preparazione backup carte:', error.message);
+  });
+}
 
 function uid(){return Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4)}
 function load(){return window.DeckCycleSafe.load(KEY, DEFAULT_STATE, normalizeDeck, uid)}
@@ -992,11 +1001,15 @@ function undoLast(){
 function exportData(){
   const archive = window.DeckCycleArchive.readyExport();
   if(!archive){
-    toast('Sto preparando il backup delle liste. Riprova Esporta fra un momento.');
-    window.DeckCycleArchive.warmExport().catch(error=>{
-      alert('Non riesco a leggere l’archivio delle liste: ' + error.message +
-        '. Il backup completo non è disponibile su questo dispositivo.');
-    });
+    if(archiveBackupError){
+      if(confirm('Archivio liste non disponibile: ' + archiveBackupError +
+        '. Vuoi esportare SOLO mazzi e statistiche, SENZA le liste delle carte?')){
+        window.DeckCycleSafe.exportData(state);
+      }
+    }else{
+      toast('Sto preparando il backup delle liste. Riprova Esporta fra un momento.');
+      warmArchiveBackup();
+    }
     return;
   }
   // Chiamata sincrona dal clic: mantiene il permesso per il menu Condividi iOS.
@@ -1017,7 +1030,7 @@ function importData(file){
       state = next;
       render();
       toast('Backup importato correttamente, incluse le liste se presenti.');
-      window.DeckCycleArchive.warmExport().catch(()=>{});
+      warmArchiveBackup();
     }
   });
 }
@@ -1077,9 +1090,9 @@ applyTheme(); render();
 window.DeckCycleSafe.installCopiesButton(KEY);
 window.DeckCycleArchiveUI.init();
 window.DeckCycleArchive.saveBaseline(state).catch(error => console.warn('DeckCycle: copia di migrazione IndexedDB non disponibile:', error.message));
-window.DeckCycleArchive.warmExport().catch(error => console.warn('DeckCycle: export IndexedDB non disponibile:', error.message));
+warmArchiveBackup();
 document.addEventListener('visibilitychange', ()=>{
-  if(document.visibilityState === 'visible') window.DeckCycleArchive.warmExport().catch(()=>{});
+  if(document.visibilityState === 'visible') warmArchiveBackup();
 });
 })();
 </script>
