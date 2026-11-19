@@ -443,6 +443,7 @@ textarea{min-height:100px;resize:vertical}
   </div>
 </div>
 
+<script src="./safeguards.js"></script>
 <script>
 (() => {
 const KEY = 'deckcycle_magic_v1';
@@ -453,18 +454,8 @@ let editId = null;
 let pendingResult = null;
 
 function uid(){return Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4)}
-function load(){
-  try{
-    const raw = JSON.parse(localStorage.getItem(KEY)||'null');
-    const merged = {...DEFAULT_STATE, ...(raw||{})};
-    merged.decks = Array.isArray(merged.decks)? merged.decks.map(normalizeDeck) : [];
-    merged.history = Array.isArray(merged.history)? merged.history.map(h => ({...h, id:h.id||uid()})) : [];
-    merged.filters = {...DEFAULT_STATE.filters, ...(merged.filters||{})};
-    if(!['magic','dark','light'].includes(merged.theme)) merged.theme='magic';
-    return merged;
-  }catch{return structuredClone(DEFAULT_STATE)}
-}
-function save(){localStorage.setItem(KEY, JSON.stringify(state))}
+function load(){return window.DeckCycleSafe.load(KEY, DEFAULT_STATE, normalizeDeck, uid)}
+function save(){return window.DeckCycleSafe.save(KEY, state)}
 function normalizeDeck(d){
   return {
     id: d.id || uid(),
@@ -777,6 +768,7 @@ function saveEdit(){
 function deleteDeck(){
   const d = getDeck(editId); if(!d) return;
   if(!confirm(`Eliminare il mazzo “${d.name}”?`)) return;
+  if(!window.DeckCycleSafe.checkpoint(KEY, 'Prima di eliminare il mazzo', true, true)) return;
   state.decks = state.decks.filter(x=>x.id!==d.id);
   if(state.selected===d.id) state.selected = null;
   save(); render(); closeModal('editModal'); toast('Mazzo eliminato.');
@@ -790,6 +782,7 @@ function newRound(){
 function undoLast(){
   const h = state.history.at(-1); if(!h) return toast('Nessun risultato da annullare.');
   if(!confirm(`Annullare l'ultimo risultato di ${h.name}?`)) return;
+  if(!window.DeckCycleSafe.checkpoint(KEY, 'Prima di annullare una partita', true, true)) return;
   state.history.pop();
   const d = getDeck(h.deckId);
   if(d){
@@ -798,19 +791,16 @@ function undoLast(){
   }
   save(); render(); toast('Ultimo risultato annullato.');
 }
-function exportData(){
-  const blob = new Blob([JSON.stringify({app:'DeckCycle Deluxe', version:4, data:state}, null, 2)], {type:'application/json'});
-  const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href=url; a.download='deckcycle-deluxe-backup.json'; a.click(); setTimeout(()=>URL.revokeObjectURL(url), 1200);
-}
+function exportData(){window.DeckCycleSafe.exportData(state)}
 function importData(file){
-  file.text().then(txt=>{
-    const parsed = JSON.parse(txt);
-    const incoming = parsed.data || parsed;
-    if(!incoming || !Array.isArray(incoming.decks) || !Array.isArray(incoming.history)) throw new Error('Struttura backup non valida');
-    state = {...DEFAULT_STATE, ...incoming};
-    state.decks = incoming.decks.map(normalizeDeck); state.filters = {...DEFAULT_STATE.filters}; if(!['magic','dark','light'].includes(state.theme)) state.theme='magic';
-    save(); render(); toast('Backup importato correttamente.');
-  }).catch(err=>toast('Importazione fallita: '+err.message));
+  window.DeckCycleSafe.importData(file, {
+    key: KEY, defaults: DEFAULT_STATE, normalizeDeck, uid,
+    onSuccess(next){
+      state = next;
+      render();
+      toast('Backup importato correttamente.');
+    }
+  });
 }
 
 $('addForm').addEventListener('submit', addDeckFromForm);
@@ -847,6 +837,7 @@ document.querySelectorAll('.modalBg').forEach(bg=>bg.addEventListener('click', e
 document.addEventListener('keydown', e=>{if(e.key==='Escape') document.querySelectorAll('.modalBg.open').forEach(el=>closeModal(el.id))});
 
 applyTheme(); render();
+window.DeckCycleSafe.installCopiesButton(KEY);
 })();
 </script>
 <script>
