@@ -4,7 +4,7 @@
 (function () {
   'use strict';
   const DB_NAME = 'deckcycle_archive_v1';
-  const DB_VERSION = 2;
+  const DB_VERSION = 3;
   const MAX_ENTRIES = 600;
   const CARD_AGE = 90 * 86400000;
   const GROUPS = ['Creature', 'Planeswalker', 'Artefatti', 'Incantesimi', 'Istantanei', 'Stregonerie', 'Terre', 'Battaglie', 'Altro'];
@@ -26,6 +26,7 @@
         if (!db.objectStoreNames.contains('revisions')) db.createObjectStore('revisions', { keyPath: 'id', autoIncrement: true });
         if (!db.objectStoreNames.contains('meta')) db.createObjectStore('meta', { keyPath: 'key' });
         if (!db.objectStoreNames.contains('artworks')) db.createObjectStore('artworks', { keyPath: 'deckId' });
+        if (!db.objectStoreNames.contains('roles')) db.createObjectStore('roles', { keyPath: 'id' });
       };
       request.onsuccess = () => {
         const db = request.result;
@@ -192,8 +193,8 @@
   }
 
   async function exportAll() {
-    const [lists, artworks, revisions] = await Promise.all([
-      getAll('lists'), getAll('artworks'), getAll('revisions')
+    const [lists, artworks, revisions, roles] = await Promise.all([
+      getAll('lists'), getAll('artworks'), getAll('revisions'), getAll('roles')
     ]);
     // Evita backup illimitati: mantenere solo le ultime 12 versioni per mazzo.
     const byDeck = new Map();
@@ -210,7 +211,8 @@
       schemaVersion: 2,
       lists: lists.map(asList),
       artworks: artworks.map(validateArtwork),
-      revisions: Array.from(byDeck.values()).flat()
+      revisions: Array.from(byDeck.values()).flat(),
+      roles: roles.map(validateRole)
     };
   }
 
@@ -232,6 +234,7 @@
         ...item, entries: item.entries.map(entry => ({ ...entry }))
       })),
       artworks: (exportSnapshot.artworks || []).map(item => ({...item})),
+      roles: (exportSnapshot.roles || []).map(item => ({...item, categories:[...item.categories]})),
       revisions: (exportSnapshot.revisions || []).map(item => ({
         ...item, snapshot: {...item.snapshot, entries: item.snapshot.entries.map(entry => ({...entry}))}
       }))
@@ -252,8 +255,40 @@
     };
   }
 
+  const ROLE_KEYS = ['ramp','draw','removal','protection','recursion'];
+  function validateRole(item) {
+    if(!item || typeof item.deckId !== 'string' || item.deckId.length > 250 ||
+        !item.deckId || typeof item.name !== 'string' || item.name.length > 220 ||
+        !item.name.trim() || !Array.isArray(item.categories) ||
+        item.categories.some(tag => !ROLE_KEYS.includes(tag))) {
+      throw new Error('Classificazione personale non valida nel backup.');
+    }
+    return {
+      id:item.deckId+'|'+item.name.toLowerCase().normalize('NFKC'),
+      deckId:item.deckId,name:item.name,categories:[...new Set(item.categories)]
+    };
+  }
+
+  async function getRoleOverrides(deckId) {
+    const items=await getAll('roles');
+    return new Map(items.filter(x=>x.deckId===deckId)
+      .map(x=>[x.name.toLowerCase().normalize('NFKC'),x.categories]));
+  }
+  async function setRoleOverride(deckId,name,categories) {
+    const item=validateRole({deckId,name,categories});
+    const db=await open();
+    const tx=db.transaction('roles','readwrite');
+    tx.objectStore('roles').put(item);
+    await txResult(tx);
+    if(exportSnapshot){
+      const i=(exportSnapshot.roles||[]).findIndex(x=>x.id===item.id);
+      if(i<0)exportSnapshot.roles.push(item);else exportSnapshot.roles[i]=item;
+    }
+    return item;
+  }
+
   function validateBackupArchive(archive) {
-    if (archive == null) return { schemaVersion: 1, lists: [], artworks: [], revisions: [] };
+    if (archive == null) return { schemaVersion: 1, lists: [], artworks: [], revisions: [], roles: [] };
     if (!archive || ![1,2].includes(archive.schemaVersion) ||
         !Array.isArray(archive.lists) || archive.lists.length > 2000) {
       throw new Error('Formato delle liste nel backup non riconosciuto.');
@@ -267,8 +302,10 @@
     });
     const arts = archive.artworks || [];
     const versions = archive.revisions || [];
+    const manualRoles = archive.roles || [];
     if (!Array.isArray(arts) || arts.length > 80 ||
-        !Array.isArray(versions) || versions.length > 3000) {
+        !Array.isArray(versions) || versions.length > 3000 ||
+        !Array.isArray(manualRoles) || manualRoles.length > 4000) {
       throw new Error('Troppe immagini o versioni nel backup.');
     }
     const artworkIds = new Set();
@@ -284,16 +321,17 @@
       return { deckId: item.deckId, at: Number(item.at)||Date.now(),
         reason: String(item.reason || '').slice(0, 150), snapshot: asList(item.snapshot) };
     });
-    return { schemaVersion: archive.schemaVersion, lists, artworks, revisions };
+    const roles=manualRoles.map(validateRole);
+    return { schemaVersion: archive.schemaVersion, lists, artworks, revisions, roles };
   }
 
   async function importAll(archive) {
     const validated = validateBackupArchive(archive);
-    const { lists, artworks, revisions } = validated;
-    if (!lists.length && !artworks.length && !revisions.length) return 0;
+    const { lists, artworks, revisions, roles } = validated;
+    if (!lists.length && !artworks.length && !revisions.length && !roles.length) return 0;
     // Un'unica transazione IndexedDB atomica: nessun import parziale.
     const db = await open();
-    const tx = db.transaction(['lists', 'revisions', 'artworks'], 'readwrite');
+    const tx = db.transaction(['lists', 'revisions', 'artworks', 'roles'], 'readwrite');
     const listStore = tx.objectStore('lists');
     lists.forEach(item => {
       const req = listStore.get(item.deckId);
@@ -306,6 +344,7 @@
     });
     artworks.forEach(item => tx.objectStore('artworks').put(item));
     revisions.forEach(item => tx.objectStore('revisions').add(item));
+    roles.forEach(item => tx.objectStore('roles').put(item));
     await txResult(tx);
     if (exportSnapshot) {
       lists.forEach(item => {
@@ -317,6 +356,10 @@
         const i = (exportSnapshot.artworks || []).findIndex(saved => saved.deckId === item.deckId);
         if (i === -1) exportSnapshot.artworks.push(item);
         else exportSnapshot.artworks[i] = item;
+      });
+      roles.forEach(item => {
+        const i=(exportSnapshot.roles||[]).findIndex(saved=>saved.id===item.id);
+        if(i<0)exportSnapshot.roles.push(item);else exportSnapshot.roles[i]=item;
       });
       exportSnapshot.revisions = null;
       warmExport().catch(() => {});
@@ -515,6 +558,7 @@
   window.DeckCycleArchive = {
     open, parseDecklist, saveBaseline, loadDeck, saveDeck, exportAll, warmExport, readyExport,
     validateBackupArchive, importAll, cachedCards, fetchScryfall, summarize, category, keyOf,
-    listRevisions, labelVersion, restoreVersion, loadArtwork, setArtwork, removeArtwork
+    listRevisions, labelVersion, restoreVersion, loadArtwork, setArtwork, removeArtwork,
+    getRoleOverrides, setRoleOverride
   };
 })();
