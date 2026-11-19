@@ -1,0 +1,858 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#120f1e">
+<title>DeckCycle Deluxe</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="DeckCycle">
+<style>
+:root{
+  --bg:#0b0912;
+  --bg2:#171125;
+  --panel:#151120;
+  --panel2:#211932;
+  --panel3:#2a2140;
+  --line:#40335f;
+  --text:#f4efea;
+  --muted:#b8b0c8;
+  --gold:#f0c97f;
+  --gold2:#ba7f3e;
+  --green:#78dfb0;
+  --red:#ff8e97;
+  --blue:#87c8ff;
+  --shadow:0 18px 45px rgba(0,0,0,.34);
+  --heroGlow:radial-gradient(circle at 15% 10%, rgba(114,85,195,.42), transparent 35%), radial-gradient(circle at 88% 18%, rgba(245,206,129,.24), transparent 32%);
+  --soft:rgba(255,255,255,.06);
+  --field:#100d18;
+  color-scheme:dark;
+}
+:root[data-theme="light"]{
+  --bg:#f6f0ea;
+  --bg2:#ebe1d6;
+  --panel:#fff8f3;
+  --panel2:#ffffff;
+  --panel3:#efe4d8;
+  --line:#dfccb8;
+  --text:#2e2231;
+  --muted:#7a6c75;
+  --gold:#ab6a24;
+  --gold2:#d49047;
+  --green:#157a52;
+  --red:#b94257;
+  --blue:#356fa5;
+  --shadow:0 18px 45px rgba(86,56,17,.1);
+  --heroGlow:radial-gradient(circle at 12% 12%, rgba(255,199,130,.35), transparent 35%), radial-gradient(circle at 85% 16%, rgba(186,125,61,.14), transparent 32%);
+  --soft:rgba(72,28,0,.05);
+  --field:#fffdf9;
+  color-scheme:light;
+}
+:root[data-theme="magic"]{
+  --bg:#0a0d14;
+  --bg2:#161d29;
+  --panel:#121923;
+  --panel2:#1b2332;
+  --panel3:#253146;
+  --line:#36435d;
+  --text:#f5efe2;
+  --muted:#b9b7ad;
+  --gold:#e7c98a;
+  --gold2:#8f6035;
+  --green:#8dd3a5;
+  --red:#f39a90;
+  --blue:#8ac1e8;
+  --shadow:0 18px 45px rgba(0,0,0,.38);
+  --heroGlow:radial-gradient(circle at 16% 12%, rgba(84,111,180,.35), transparent 35%), radial-gradient(circle at 87% 15%, rgba(230,188,113,.18), transparent 32%);
+  --soft:rgba(231,201,138,.06);
+  --field:#0f141d;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  font-family:Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  color:var(--text);
+  background:
+    radial-gradient(circle at top left, rgba(124,74,200,.13), transparent 28%),
+    radial-gradient(circle at right 15%, rgba(236,192,109,.08), transparent 24%),
+    linear-gradient(180deg, var(--bg), var(--bg2));
+}
+button,input,select,textarea{font:inherit}
+button{cursor:pointer}
+a{color:var(--gold)}
+img{display:block;max-width:100%}
+.app{max-width:1220px;margin:0 auto;padding:calc(env(safe-area-inset-top) + 14px) 14px calc(env(safe-area-inset-bottom) + 80px)}
+.topbar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.brand{display:flex;align-items:center;gap:12px}
+.brandBadge{width:48px;height:48px;border-radius:16px;background:linear-gradient(145deg, var(--gold), #7e5174);display:grid;place-items:center;color:#211923;font-size:26px;box-shadow:var(--shadow)}
+.brandTitle{font-size:28px;font-weight:900;letter-spacing:-.04em;line-height:1}
+.brandSub{font-size:12px;color:var(--muted);margin-top:3px}
+.topActions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.pillBtn,.iconBtn,.primary,.secondary,.danger,.success{border:1px solid var(--line);background:var(--panel2);color:var(--text);border-radius:14px;padding:10px 14px;font-weight:700;transition:.18s transform,.18s filter,.18s background,.18s border}
+.pillBtn:hover,.iconBtn:hover,.primary:hover,.secondary:hover,.danger:hover,.success:hover{transform:translateY(-1px);filter:brightness(1.08)}
+.iconBtn{width:42px;height:42px;padding:0;display:grid;place-items:center;border-radius:14px}
+.primary{background:linear-gradient(135deg, var(--gold), var(--gold2));color:#221721;border-color:transparent}
+.success{background:rgba(120,223,176,.12);color:var(--green);border-color:rgba(120,223,176,.28)}
+.danger{background:rgba(255,142,151,.12);color:var(--red);border-color:rgba(255,142,151,.28)}
+.secondary{background:transparent}
+.layout{display:grid;grid-template-columns:1.18fr .82fr;gap:16px;align-items:start}
+.stack{display:grid;gap:16px}
+.card{background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,0)) , var(--panel);border:1px solid var(--line);border-radius:26px;box-shadow:var(--shadow);overflow:hidden}
+.hero{position:relative;min-height:390px;padding:24px;display:flex;flex-direction:column;justify-content:space-between;isolation:isolate}
+.hero::before{content:"";position:absolute;inset:0;background:var(--heroGlow);z-index:-2}
+.hero::after{content:"";position:absolute;inset:auto -15% -20% auto;width:320px;height:320px;border-radius:50%;background:var(--deck-bg, radial-gradient(circle, rgba(255,255,255,.12), transparent 60%));filter:blur(16px);opacity:.8;z-index:-1;transition:.35s ease}
+.heroArt{position:absolute;right:0;top:0;height:100%;width:54%;object-fit:cover;object-position:top center;opacity:.42;mask-image:linear-gradient(90deg, transparent 0%, black 28%, black 100%);z-index:-1;transition:.35s ease}
+.heroOverlay{position:absolute;inset:0;background:linear-gradient(100deg, rgba(10,8,14,.78) 0 48%, transparent 75%)}
+.heroContent{position:relative;z-index:2;max-width:56%}
+.kicker{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);font-weight:800}
+.deckTitle{font-size:clamp(34px,4vw,50px);font-weight:900;line-height:.98;letter-spacing:-.05em;margin:12px 0 8px;text-wrap:balance;text-shadow:0 8px 20px rgba(0,0,0,.22)}
+.deckSub{font-size:14px;color:var(--muted);min-height:42px;max-width:90%}
+.tagRow{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.tag{padding:6px 10px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.05);font-size:12px;font-weight:700;color:var(--muted)}
+.manaRow{display:flex;gap:5px;flex-wrap:wrap}
+.mana{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:900;color:#1e1822;border:1px solid rgba(0,0,0,.22);box-shadow:inset 0 1px 1px rgba(255,255,255,.5)}
+.mW{background:#f6e8be}.mU{background:#8ec6ef}.mB{background:#b7afbd}.mR{background:#f59a84}.mG{background:#95d6a2}.mC{background:#c8cdd3}
+.heroBottom{position:relative;z-index:2;display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.statBox{padding:14px;border-radius:18px;background:rgba(255,255,255,.05);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.08)}
+.statLabel{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.12em}
+.statValue{font-size:28px;font-weight:900;line-height:1.1;margin-top:5px}
+.drawControls{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+.drawMachine{padding:16px;background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.01));border:1px solid var(--line);border-radius:22px;position:relative;overflow:hidden}
+.machineTop{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}
+.machineLabel{font-size:13px;color:var(--muted)}
+.reelWrap{height:62px;border-radius:16px;border:1px solid var(--line);background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.01));display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.reelWrap::before,.reelWrap::after{content:"";position:absolute;left:0;right:0;height:18px;z-index:1}
+.reelWrap::before{top:0;background:linear-gradient(180deg,var(--panel),transparent)}
+.reelWrap::after{bottom:0;background:linear-gradient(0deg,var(--panel),transparent)}
+.reelText{font-size:24px;font-weight:900;letter-spacing:-.03em;text-align:center;padding:0 12px;transition:transform .16s ease, opacity .16s ease}
+.reelText.roll{animation:reelroll .1s linear infinite}
+@keyframes reelroll{0%{transform:translateY(0);opacity:.65}50%{transform:translateY(8px);opacity:1}100%{transform:translateY(-8px);opacity:.65}}
+.section{padding:18px}
+.sectionHeader{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.sectionTitle{font-size:18px;font-weight:900;letter-spacing:-.03em}
+.sectionSub{font-size:12px;color:var(--muted)}
+.formGrid{display:grid;grid-template-columns:1.1fr .8fr .8fr .9fr auto;gap:8px}
+.field,select,textarea{width:100%;background:var(--field);border:1px solid var(--line);color:var(--text);border-radius:14px;padding:12px 13px;outline:none}
+ .field:focus, select:focus, textarea:focus{border-color:var(--gold);box-shadow:0 0 0 4px rgba(232,190,122,.14)}
+textarea{min-height:100px;resize:vertical}
+.filterRow{display:grid;grid-template-columns:1.3fr .8fr .8fr auto;gap:8px}
+.decks{display:grid;gap:10px;max-height:780px;overflow:auto;padding-right:3px}
+.deckCard{display:grid;grid-template-columns:64px 1fr auto;gap:12px;align-items:center;padding:12px;border:1px solid var(--line);border-radius:18px;background:linear-gradient(180deg, rgba(255,255,255,.025), rgba(255,255,255,.01));transition:.16s ease transform,.16s ease border,.16s ease opacity}
+.deckCard:hover{transform:translateY(-1px);border-color:rgba(255,255,255,.18)}
+.deckCard.played{opacity:.72}
+.deckCard.paused{box-shadow:inset 0 0 0 1px rgba(255,142,151,.18)}
+.deckThumb{width:64px;height:84px;border-radius:12px;object-fit:cover;object-position:top;background:linear-gradient(145deg,#5b4a75,#241d33);border:1px solid var(--line)}
+.deckInfo{min-width:0}
+.deckName{font-size:15px;font-weight:900;letter-spacing:-.02em;overflow-wrap:anywhere}
+.deckMeta{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px}
+.miniStat{font-size:11px;color:var(--muted);margin-top:6px}
+.deckActions{display:flex;flex-direction:column;gap:6px;align-items:flex-end}
+.miniBtn{padding:8px 10px;border-radius:12px;border:1px solid var(--line);background:var(--panel2);color:var(--text);font-size:12px;font-weight:800}
+.timeline{display:grid;gap:10px;max-height:420px;overflow:auto}
+.timeCard{display:grid;grid-template-columns:1fr auto;gap:10px;padding:12px;border-radius:16px;border:1px solid var(--line);background:linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01))}
+.timeTitle{font-weight:800}
+.timeMeta{font-size:12px;color:var(--muted);margin-top:4px}
+.resultWin{color:var(--green);font-weight:900}.resultLoss{color:var(--red);font-weight:900}
+.empty{padding:24px 16px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:18px;background:rgba(255,255,255,.02)}
+.rankList{display:grid;gap:10px}
+.rankRow{display:grid;grid-template-columns:minmax(90px,1fr) 1.7fr auto;gap:10px;align-items:center;font-size:13px}
+.track{height:10px;border-radius:999px;background:rgba(255,255,255,.05);overflow:hidden;border:1px solid rgba(255,255,255,.03)}
+.track > span{display:block;height:100%;background:linear-gradient(90deg, #8f80d3, var(--gold));border-radius:inherit}
+.monthGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.monthBox{padding:10px;border-radius:16px;background:rgba(255,255,255,.03);border:1px solid var(--line);text-align:center}
+.monthBox b{display:block;font-size:18px;margin-bottom:2px}
+.modalBg{position:fixed;inset:0;background:rgba(8,6,12,.75);display:none;align-items:center;justify-content:center;padding:16px;z-index:60;backdrop-filter:blur(10px)}
+.modalBg.open{display:flex}
+.modal{width:min(760px, 100%);max-height:min(88vh, 920px);overflow:auto;background:linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01)), var(--panel);border:1px solid var(--line);border-radius:26px;box-shadow:var(--shadow);padding:18px}
+.modalHead{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px}
+.modalTitle{font-size:20px;font-weight:900;letter-spacing:-.03em}
+.modalGrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.previewCard{padding:14px;border:1px solid var(--line);border-radius:20px;background:rgba(255,255,255,.03)}
+.previewArt{width:100%;aspect-ratio:4/3;border-radius:18px;object-fit:cover;object-position:top center;background:linear-gradient(145deg,#5f4c76,#241c31);margin-bottom:10px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.note{font-size:12px;color:var(--muted);line-height:1.5}
+.toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%) translateY(10px);padding:12px 16px;border-radius:14px;background:rgba(22,18,31,.95);border:1px solid rgba(255,255,255,.12);color:#fff;box-shadow:var(--shadow);opacity:0;pointer-events:none;transition:.2s ease;z-index:90;max-width:min(90vw,560px);text-align:center}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.overlayFX{position:fixed;inset:0;pointer-events:none;z-index:55;overflow:hidden}
+.spark{position:absolute;top:-24px;width:10px;height:18px;border-radius:5px;opacity:.95;animation:fall linear forwards}
+@keyframes fall{to{transform:translate(var(--dx), 110vh) rotate(760deg);opacity:0}}
+.winGlow,.lossGlow{position:fixed;inset:0;pointer-events:none;opacity:0;z-index:50}
+.winGlow.show{animation:winflash 900ms ease}
+.lossGlow.show{animation:lossflash 700ms ease}
+@keyframes winflash{0%{opacity:0}20%{opacity:1;background:radial-gradient(circle at center, rgba(120,223,176,.25), transparent 50%)}100%{opacity:0}}
+@keyframes lossflash{0%{opacity:0}20%{opacity:1;background:radial-gradient(circle at center, rgba(255,89,105,.22), transparent 50%)}100%{opacity:0}}
+.hero.shake{animation:shake .45s ease}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-5px)}40%{transform:translateX(5px)}60%{transform:translateX(-3px)}80%{transform:translateX(3px)}}
+.reveal{animation:reveal .45s ease}
+@keyframes reveal{0%{transform:translateY(14px);opacity:0}100%{transform:none;opacity:1}}
+.footer{padding:10px 2px 0;color:var(--muted);font-size:12px;text-align:center}
+.hide{display:none !important}
+@media (max-width: 960px){
+  .layout{grid-template-columns:1fr}
+}
+@media (max-width: 760px){
+  .app{padding-left:12px;padding-right:12px}
+  .hero{min-height:430px;padding:18px}
+  .heroArt{width:100%;opacity:.22;mask-image:none}
+  .heroOverlay{background:linear-gradient(180deg, rgba(9,8,14,.7), rgba(9,8,14,.5))}
+  .heroContent{max-width:100%}
+  .deckSub{max-width:100%}
+  .heroBottom{grid-template-columns:repeat(2,1fr)}
+  .formGrid,.filterRow,.modalGrid{grid-template-columns:1fr}
+  .deckCard{grid-template-columns:54px 1fr}
+  .deckThumb{width:54px;height:72px}
+  .deckActions{grid-column:2;flex-direction:row;flex-wrap:wrap;justify-content:flex-start}
+}
+</style>
+</head>
+<body>
+<div class="overlayFX" id="fxLayer"></div>
+<div class="winGlow" id="winGlow"></div>
+<div class="lossGlow" id="lossGlow"></div>
+<div class="toast" id="toast"></div>
+<div class="app">
+  <header class="topbar">
+    <div class="brand">
+      <div class="brandBadge">🃏</div>
+      <div>
+        <div class="brandTitle">DeckCycle Deluxe</div>
+        <div class="brandSub">Rotazione intelligente dei mazzi Commander • Mobile first</div>
+      </div>
+    </div>
+    <div class="topActions">
+      <select id="theme" class="pillBtn" aria-label="Tema app">
+        <option value="magic">Tema Magic</option>
+        <option value="dark">Tema Scuro</option>
+        <option value="light">Tema Chiaro</option>
+      </select>
+      <button class="pillBtn" id="exportBtn">Esporta</button>
+      <button class="pillBtn" id="importBtn">Importa</button>
+      <input type="file" id="importFile" accept="application/json" class="hide">
+    </div>
+  </header>
+
+  <div class="layout">
+    <div class="stack">
+      <section class="card hero reveal" id="hero">
+        <img id="heroArt" class="heroArt hide" alt="Artwork comandante">
+        <div class="heroOverlay"></div>
+        <div class="heroContent">
+          <div class="kicker">Mazzo estratto</div>
+          <div class="deckTitle" id="heroName">Pronto per il prossimo giro?</div>
+          <div class="deckSub" id="heroDesc">Pesca un mazzo dalla tua collezione. Quelli già giocati nel giro corrente vengono esclusi automaticamente, ma restano sempre selezionabili a mano.</div>
+          <div class="tagRow">
+            <div class="manaRow" id="heroColors"></div>
+            <span class="tag" id="heroBracket">Bracket —</span>
+            <span class="tag" id="heroFormat">Formato —</span>
+            <span class="tag" id="heroStatus">Nessun mazzo selezionato</span>
+          </div>
+          <div class="drawControls">
+            <button class="primary" id="drawBtn">✨ Pesca un mazzo</button>
+            <button class="secondary" id="rerollBtn">🎲 Cambia mazzo</button>
+            <button class="success" id="winBtn">🏆 Vittoria</button>
+            <button class="danger" id="lossBtn">💀 Sconfitta</button>
+          </div>
+        </div>
+        <div class="heroBottom">
+          <div class="statBox"><div class="statLabel">Totale mazzi</div><div class="statValue" id="sDecks">0</div></div>
+          <div class="statBox"><div class="statLabel">Disponibili</div><div class="statValue" id="sAvailable">0</div></div>
+          <div class="statBox"><div class="statLabel">Partite</div><div class="statValue" id="sGames">0</div></div>
+          <div class="statBox"><div class="statLabel">Win rate</div><div class="statValue" id="sRate">—</div></div>
+        </div>
+      </section>
+
+      <section class="card section reveal">
+        <div class="sectionHeader">
+          <div>
+            <div class="sectionTitle">Sorteggio animato</div>
+            <div class="sectionSub">Usa i filtri attivi per limitare il pool dei mazzi da pescare.</div>
+          </div>
+          <div class="row">
+            <button class="pillBtn" id="newRoundBtn">Nuovo giro</button>
+            <button class="pillBtn" id="undoBtn">Annulla ultimo risultato</button>
+          </div>
+        </div>
+        <div class="drawMachine">
+          <div class="machineTop">
+            <div class="machineLabel">Ruota del destino</div>
+            <div class="sectionSub" id="roundInfo">Giro 1</div>
+          </div>
+          <div class="reelWrap">
+            <div class="reelText" id="reelText">Tocca “Pesca un mazzo”</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card section reveal">
+        <div class="sectionHeader">
+          <div>
+            <div class="sectionTitle">Aggiungi mazzo</div>
+            <div class="sectionSub">Nome del mazzo o comandante. L'artwork viene cercato automaticamente su Scryfall.</div>
+          </div>
+        </div>
+        <form id="addForm" class="formGrid">
+          <input class="field" id="addName" placeholder="Es. Wilhelt, the Rotcleaver" required>
+          <input class="field" id="addColors" placeholder="AUTO o WUBRG">
+          <select id="addBracket">
+            <option value="">Bracket</option>
+            <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option>
+          </select>
+          <select id="addFormat">
+            <option>Commander</option><option>Pioneer</option><option>Modern</option><option>Legacy</option><option>Pauper</option><option>Standard</option><option>Limited</option><option>Altro</option>
+          </select>
+          <button class="primary" type="submit">Aggiungi</button>
+        </form>
+      </section>
+
+      <section class="card section reveal">
+        <div class="sectionHeader">
+          <div>
+            <div class="sectionTitle">I tuoi mazzi</div>
+            <div class="sectionSub">I mazzi in pausa non entrano nel sorteggio, ma puoi comunque selezionarli manualmente e segnare la partita.</div>
+          </div>
+        </div>
+        <div class="filterRow" style="margin-bottom:12px">
+          <input class="field" id="search" placeholder="Cerca mazzo o comandante">
+          <select id="filterColor">
+            <option value="">Tutti i colori</option>
+            <option value="W">Bianco</option><option value="U">Blu</option><option value="B">Nero</option><option value="R">Rosso</option><option value="G">Verde</option>
+            <option value="WU">Azorius</option><option value="UB">Dimir</option><option value="BR">Rakdos</option><option value="RG">Gruul</option><option value="GW">Selesnya</option>
+            <option value="WUBRG">5 colori</option>
+          </select>
+          <select id="filterBracket">
+            <option value="">Tutti i bracket</option>
+            <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option>
+          </select>
+          <button class="pillBtn" id="onlyAvailableBtn" type="button">Solo disponibili: OFF</button>
+        </div>
+        <div id="deckList" class="decks"></div>
+      </section>
+    </div>
+
+    <div class="stack">
+      <section class="card section reveal">
+        <div class="sectionHeader">
+          <div>
+            <div class="sectionTitle">Storico completo</div>
+            <div class="sectionSub">Data, risultato, avversari, comandante affrontato e note.</div>
+          </div>
+        </div>
+        <div id="history" class="timeline"></div>
+      </section>
+
+      <section class="card section reveal">
+        <div class="sectionHeader">
+          <div>
+            <div class="sectionTitle">Classifica mazzi</div>
+            <div class="sectionSub">Win rate e numero di partite.</div>
+          </div>
+        </div>
+        <div id="ranking" class="rankList"></div>
+      </section>
+
+      <section class="card section reveal">
+        <div class="sectionHeader">
+          <div>
+            <div class="sectionTitle">Risultati per mese</div>
+            <div class="sectionSub">Panoramica rapida delle ultime partite.</div>
+          </div>
+        </div>
+        <div id="months" class="monthGrid"></div>
+      </section>
+    </div>
+  </div>
+
+  <div class="footer">DeckCycle Deluxe salva i dati nel browser del dispositivo. Le immagini dei comandanti arrivano da Scryfall e richiedono Internet.</div>
+</div>
+
+<div class="modalBg" id="recordModal">
+  <div class="modal">
+    <div class="modalHead">
+      <div class="modalTitle" id="recordTitle">Registra partita</div>
+      <button class="iconBtn" data-close="recordModal">✕</button>
+    </div>
+    <div class="modalGrid">
+      <div>
+        <label class="sectionSub">Avversari</label>
+        <input class="field" id="recordOpponents" placeholder="Es. Luca, Marco, Alessio">
+        <label class="sectionSub" style="display:block;margin-top:12px">Comandanti affrontati</label>
+        <input class="field" id="recordEnemy" placeholder="Es. Atraxa, Krenko, Omnath">
+        <label class="sectionSub" style="display:block;margin-top:12px">Note</label>
+        <textarea id="recordNotes" placeholder="Come è andata? match-up? carte da cambiare?"></textarea>
+      </div>
+      <div class="previewCard">
+        <img id="recordArt" class="previewArt hide" alt="Artwork comandante">
+        <div class="deckName" id="recordDeckName">Mazzo</div>
+        <div class="tagRow" id="recordDeckTags"></div>
+        <p class="note">Il risultato viene registrato nello storico con data e ora. Se il mazzo era già stato usato nel giro corrente o messo in pausa, resta comunque segnato correttamente.</p>
+      </div>
+    </div>
+    <div class="row" style="justify-content:flex-end;margin-top:16px">
+      <button class="secondary" data-close="recordModal">Annulla</button>
+      <button class="primary" id="recordConfirmBtn">Conferma risultato</button>
+    </div>
+  </div>
+</div>
+
+<div class="modalBg" id="editModal">
+  <div class="modal">
+    <div class="modalHead">
+      <div class="modalTitle">Scheda del mazzo</div>
+      <button class="iconBtn" data-close="editModal">✕</button>
+    </div>
+    <div class="modalGrid">
+      <div>
+        <label class="sectionSub">Nome mazzo</label>
+        <input class="field" id="editName">
+        <label class="sectionSub" style="display:block;margin-top:12px">Comandante</label>
+        <input class="field" id="editCommander">
+        <div class="row" style="margin-top:12px">
+          <div style="flex:1 1 140px"><label class="sectionSub">Colori</label><input class="field" id="editColors" placeholder="Es. UB"></div>
+          <div style="flex:1 1 120px"><label class="sectionSub">Bracket</label><select id="editBracket"><option value=""></option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
+          <div style="flex:1 1 140px"><label class="sectionSub">Formato</label><select id="editFormat"><option>Commander</option><option>Pioneer</option><option>Modern</option><option>Legacy</option><option>Pauper</option><option>Standard</option><option>Limited</option><option>Altro</option></select></div>
+        </div>
+        <label class="sectionSub" style="display:block;margin-top:12px">Strategia</label>
+        <textarea id="editStrategy" placeholder="Es. Aristocrats, token, control, combo..."></textarea>
+        <label class="sectionSub" style="display:block;margin-top:12px">Note</label>
+        <textarea id="editNotes" placeholder="Appunti sul mazzo"></textarea>
+        <label class="sectionSub" style="display:block;margin-top:12px">Link Moxfield</label>
+        <input class="field" id="editMoxfield" placeholder="https://www.moxfield.com/decks/...">
+        <div class="row" style="margin-top:14px">
+          <button class="pillBtn" id="refreshArtBtn" type="button">Aggiorna da Scryfall</button>
+          <button class="pillBtn" id="togglePauseBtn" type="button">Metti in pausa</button>
+          <button class="danger" id="deleteDeckBtn" type="button">Elimina</button>
+        </div>
+      </div>
+      <div class="previewCard">
+        <img id="editArt" class="previewArt hide" alt="Artwork comandante">
+        <div class="deckName" id="editPreviewName">Mazzo</div>
+        <div class="tagRow" id="editPreviewTags"></div>
+        <p class="note" id="editStats">0 partite</p>
+        <p class="note" id="editArtist"></p>
+        <a id="editMoxfieldLink" class="hide" target="_blank" rel="noopener noreferrer">Apri su Moxfield ↗</a>
+      </div>
+    </div>
+    <div class="row" style="justify-content:flex-end;margin-top:16px">
+      <button class="secondary" data-close="editModal">Chiudi</button>
+      <button class="primary" id="saveEditBtn">Salva</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+const KEY = 'deckcycle_magic_v1';
+const $ = id => document.getElementById(id);
+const DEFAULT_STATE = {decks:[], history:[], round:1, selected:null, theme:'magic', filters:{q:'', color:'', bracket:'', only:false}};
+let state = load();
+let editId = null;
+let pendingResult = null;
+
+function uid(){return Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4)}
+function load(){
+  try{
+    const raw = JSON.parse(localStorage.getItem(KEY)||'null');
+    const merged = {...DEFAULT_STATE, ...(raw||{})};
+    merged.decks = Array.isArray(merged.decks)? merged.decks.map(normalizeDeck) : [];
+    merged.history = Array.isArray(merged.history)? merged.history.map(h => ({...h, id:h.id||uid()})) : [];
+    merged.filters = {...DEFAULT_STATE.filters, ...(merged.filters||{})};
+    if(!['magic','dark','light'].includes(merged.theme)) merged.theme='magic';
+    return merged;
+  }catch{return structuredClone(DEFAULT_STATE)}
+}
+function save(){localStorage.setItem(KEY, JSON.stringify(state))}
+function normalizeDeck(d){
+  return {
+    id: d.id || uid(),
+    name: String(d.name||d.commander||'').trim(),
+    commander: String(d.commander||d.name||'').trim(),
+    colors: normalizeColors(d.colors),
+    format: d.format || 'Commander',
+    bracket: d.bracket ? String(d.bracket) : '',
+    notes: d.notes || '',
+    strategy: d.strategy || '',
+    moxfield: typeof d.moxfield === 'string' ? d.moxfield : '',
+    image: typeof d.image === 'string' ? d.image : '',
+    artist: d.artist || '',
+    played: !!d.played,
+    paused: !!d.paused
+  }
+}
+function normalizeColors(v){
+  const chars = [...new Set(String(v||'').toUpperCase().replace(/[^WUBRGC]/g,''))];
+  const order = 'WUBRGC'.split('');
+  return order.filter(x => chars.includes(x)).join('');
+}
+function formatDate(iso){
+  const d = new Date(iso);
+  return isNaN(d) ? '—' : d.toLocaleString('it-IT', {day:'2-digit', month:'2-digit', year:'2-digit', hour:'2-digit', minute:'2-digit'});
+}
+function toast(msg){
+  const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toast._t); toast._t = setTimeout(()=>t.classList.remove('show'), 2200);
+}
+function applyTheme(){document.documentElement.dataset.theme = state.theme; $('theme').value = state.theme}
+function getDeck(id){return state.decks.find(d=>d.id===id)}
+function deckStats(deck){
+  const list = state.history.filter(h => h.deckId === deck.id);
+  const wins = list.filter(h => h.result === 'win').length;
+  const losses = list.length - wins;
+  const rate = list.length ? Math.round(wins / list.length * 100) : 0;
+  return {games:list.length,wins,losses,rate};
+}
+function totalStats(){
+  const wins = state.history.filter(h=>h.result==='win').length;
+  const losses = state.history.length - wins;
+  return {wins, losses, games:state.history.length, rate: state.history.length ? Math.round(wins/state.history.length*100) : 0};
+}
+function activeDecks(){return state.decks.filter(d=>!d.paused)}
+function matchesFilters(d){
+  const q = (state.filters.q||'').trim().toLowerCase();
+  if(q && !(d.name.toLowerCase().includes(q) || d.commander.toLowerCase().includes(q) || d.strategy.toLowerCase().includes(q))) return false;
+  if(state.filters.color && !d.colors.includes(state.filters.color.split('')[0]) && d.colors !== state.filters.color) {
+    // if filter is multicolor exact-ish, require all selected colors contained
+    const wanted = state.filters.color.split('');
+    if(!wanted.every(c => d.colors.includes(c))) return false;
+  }
+  if(state.filters.bracket && String(d.bracket||'') !== String(state.filters.bracket)) return false;
+  if(state.filters.only && (d.played || d.paused)) return false;
+  return true;
+}
+function drawPool(){return state.decks.filter(d => !d.paused && !d.played && matchesFilters(d))}
+function eligiblePool(){return state.decks.filter(d => !d.paused && matchesFilters(d))}
+function manaIcons(colors){
+  const arr = (colors||'').split('').filter(Boolean);
+  return arr.length ? arr.map(c=>`<span class="mana m${c}">${c}</span>`).join('') : `<span class="mana mC">C</span>`;
+}
+function deckGradient(colors){
+  const map = {W:'#efe1ab',U:'#5fa5db',B:'#7c6b8b',R:'#db624d',G:'#59a96a',C:'#9ca3af'};
+  const arr = (colors||'C').split('').filter(Boolean);
+  if(arr.length === 1) return `radial-gradient(circle, ${hexAlpha(map[arr[0]]||map.C,.35)}, transparent 65%)`;
+  const stops = arr.map((c,i)=>`${map[c]||map.C} ${Math.round(i*100/arr.length)}% ${Math.round((i+1)*100/arr.length)}%`).join(', ');
+  return `linear-gradient(135deg, ${stops})`;
+}
+function hexAlpha(hex,a){
+  const v = hex.replace('#','');
+  const n = parseInt(v,16); const r=(n>>16)&255, g=(n>>8)&255, b=n&255; return `rgba(${r},${g},${b},${a})`;
+}
+function maybeAdvanceRound(){
+  const active = activeDecks();
+  if(!active.length) return false;
+  if(active.every(d => d.played)){
+    state.round += 1;
+    active.forEach(d => d.played = false);
+    toast('Nuovo giro iniziato automaticamente.');
+    return true;
+  }
+  return false;
+}
+function renderHero(){
+  const d = getDeck(state.selected);
+  const t = totalStats();
+  $('sDecks').textContent = state.decks.length;
+  $('sAvailable').textContent = state.decks.filter(x=>!x.paused && !x.played).length;
+  $('sGames').textContent = t.games;
+  $('sRate').textContent = t.games ? `${t.rate}%` : '—';
+  $('roundInfo').textContent = `Giro ${state.round}`;
+  const hero = $('hero');
+  if(!d){
+    $('heroName').textContent = 'Pronto per il prossimo giro?';
+    $('heroDesc').textContent = 'Pesca un mazzo dalla tua collezione. Quelli già giocati nel giro corrente vengono esclusi automaticamente, ma restano sempre selezionabili a mano.';
+    $('heroColors').innerHTML = '<span class="tag">Nessun colore</span>';
+    $('heroBracket').textContent = 'Bracket —';
+    $('heroFormat').textContent = 'Formato —';
+    $('heroStatus').textContent = 'Nessun mazzo selezionato';
+    $('heroArt').classList.add('hide'); $('heroArt').removeAttribute('src');
+    hero.style.setProperty('--deck-bg', deckGradient('C'));
+    return;
+  }
+  const s = deckStats(d);
+  $('heroName').textContent = d.name;
+  $('heroDesc').textContent = d.strategy || d.notes || `Comandante: ${d.commander || d.name}`;
+  $('heroColors').innerHTML = manaIcons(d.colors);
+  $('heroBracket').textContent = `Bracket ${d.bracket || '—'}`;
+  $('heroFormat').textContent = d.format || 'Commander';
+  $('heroStatus').textContent = d.paused ? 'In pausa (selezionato manualmente)' : d.played ? 'Già usato nel giro' : 'Disponibile';
+  hero.style.setProperty('--deck-bg', deckGradient(d.colors));
+  if(d.image){$('heroArt').src=d.image; $('heroArt').classList.remove('hide')} else {$('heroArt').classList.add('hide'); $('heroArt').removeAttribute('src')}
+}
+function renderDeckList(){
+  const list = $('deckList');
+  const decks = [...state.decks].filter(matchesFilters).sort((a,b)=>a.name.localeCompare(b.name,'it',{sensitivity:'base'}));
+  if(!decks.length){list.innerHTML = `<div class="empty">Nessun mazzo da mostrare con i filtri attivi.</div>`;return}
+  list.innerHTML = decks.map(d=>{
+    const s = deckStats(d);
+    const tags = [d.bracket?`<span class="tag">Bracket ${d.bracket}</span>`:'', d.format?`<span class="tag">${d.format}</span>`:'', d.paused?`<span class="tag" style="color:var(--red)">In pausa</span>`:'', d.played?`<span class="tag" style="color:var(--gold)">Giocato</span>`:`<span class="tag" style="color:var(--green)">Disponibile</span>`].join('');
+    return `<div class="deckCard ${d.played?'played':''} ${d.paused?'paused':''}">
+      <img class="deckThumb" src="${d.image || ''}" alt="" onerror="this.removeAttribute('src')">
+      <div class="deckInfo">
+        <div class="deckName">${escapeHtml(d.name)}</div>
+        <div class="deckMeta">${manaIcons(d.colors)} ${tags}</div>
+        <div class="miniStat">${s.games} partite · ${s.wins}W / ${s.losses}L · ${s.games ? s.rate+'%' : '—'} win rate</div>
+      </div>
+      <div class="deckActions">
+        <button class="miniBtn" data-action="choose" data-id="${d.id}">Usa</button>
+        <button class="miniBtn" data-action="pause" data-id="${d.id}">${d.paused?'Riattiva':'Pausa'}</button>
+        <button class="miniBtn" data-action="edit" data-id="${d.id}">Scheda</button>
+      </div>
+    </div>`
+  }).join('');
+}
+function renderHistory(){
+  const box = $('history');
+  const items = [...state.history].sort((a,b)=>new Date(b.at)-new Date(a.at));
+  if(!items.length){box.innerHTML = `<div class="empty">Nessuna partita registrata.</div>`; return}
+  box.innerHTML = items.slice(0,60).map(h=>`<div class="timeCard">
+    <div>
+      <div class="timeTitle">${escapeHtml(h.name)} <span class="${h.result==='win'?'resultWin':'resultLoss'}">${h.result==='win'?'Vittoria':'Sconfitta'}</span></div>
+      <div class="timeMeta">${formatDate(h.at)} · Giro ${h.round || 1}${h.override ? ' · scelto manualmente' : ''}</div>
+      ${h.opponents ? `<div class="timeMeta">Avversari: ${escapeHtml(h.opponents)}</div>` : ''}
+      ${h.enemy ? `<div class="timeMeta">Comandanti affrontati: ${escapeHtml(h.enemy)}</div>` : ''}
+      ${h.notes ? `<div class="timeMeta">Note: ${escapeHtml(h.notes)}</div>` : ''}
+    </div>
+    <div class="${h.result==='win'?'resultWin':'resultLoss'}">${h.result==='win'?'🏆':'💀'}</div>
+  </div>`).join('');
+}
+function renderRanking(){
+  const box = $('ranking');
+  if(!state.decks.length){box.innerHTML = `<div class="empty">Aggiungi dei mazzi per vedere la classifica.</div>`;return}
+  const rows = state.decks.map(d=>({d,...deckStats(d)})).sort((a,b)=> (b.games?b.rate:-1) - (a.games?a.rate:-1) || b.games-a.games || a.d.name.localeCompare(b.d.name));
+  box.innerHTML = rows.slice(0,10).map(r=>`<div class="rankRow">
+    <div>${escapeHtml(r.d.name)}</div>
+    <div class="track"><span style="width:${Math.max(r.games? r.rate : 0, 3)}%"></span></div>
+    <div>${r.games ? `${r.rate}% · ${r.games}` : '—'}</div>
+  </div>`).join('');
+}
+function renderMonths(){
+  const box = $('months');
+  const monthNames = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
+  const map = Array.from({length:12},(_,i)=>({i,w:0,l:0}));
+  state.history.forEach(h=>{const d=new Date(h.at); if(!isNaN(d)){const m=map[d.getMonth()]; h.result==='win'?m.w++:m.l++}});
+  box.innerHTML = map.map(m=>`<div class="monthBox"><b>${monthNames[m.i]}</b>${m.w}W · ${m.l}L</div>`).join('');
+}
+function render(){
+  applyTheme();
+  $('onlyAvailableBtn').textContent = `Solo disponibili: ${state.filters.only ? 'ON' : 'OFF'}`;
+  $('search').value = state.filters.q || '';
+  $('filterColor').value = state.filters.color || '';
+  $('filterBracket').value = state.filters.bracket || '';
+  renderHero(); renderDeckList(); renderHistory(); renderRanking(); renderMonths(); save();
+}
+function escapeHtml(str){return String(str||'').replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function openModal(id){$(id).classList.add('open')}
+function closeModal(id){$(id).classList.remove('open')}
+
+async function fetchCommanderArt(deck, notify=false){
+  const query = encodeURIComponent(deck.commander || deck.name);
+  try{
+    const res = await fetch(`https://api.scryfall.com/cards/named?fuzzy=${query}`, {headers:{accept:'application/json'}});
+    if(!res.ok) throw new Error('not-found');
+    const card = await res.json();
+    const face = card.card_faces?.[0];
+    deck.image = card.image_uris?.art_crop || face?.image_uris?.art_crop || card.image_uris?.normal || face?.image_uris?.normal || '';
+    deck.artist = card.artist || face?.artist || '';
+    if(!deck.colors) deck.colors = normalizeColors((card.color_identity||[]).join(''));
+    save(); render(); if(notify) toast('Artwork aggiornato da Scryfall.');
+  }catch(err){ if(notify) toast('Non sono riuscito a recuperare l’artwork da Scryfall.'); }
+}
+function addDeckFromForm(e){
+  e.preventDefault();
+  const name = $('addName').value.trim(); if(!name) return;
+  if(state.decks.some(d=>d.name.toLowerCase()===name.toLowerCase())) return toast('Questo mazzo esiste già.');
+  const deck = normalizeDeck({name, commander:name, colors: $('addColors').value.trim().toUpperCase()==='AUTO' ? '' : $('addColors').value, bracket: $('addBracket').value, format: $('addFormat').value});
+  state.decks.push(deck);
+  $('addForm').reset(); $('addFormat').value = 'Commander';
+  save(); render(); fetchCommanderArt(deck);
+  toast('Mazzo aggiunto.');
+}
+function ensureRoundForDraw(){
+  if(drawPool().length) return true;
+  const eligible = eligiblePool();
+  if(eligible.length && eligible.every(d=>d.played)){
+    state.round += 1;
+    state.decks.forEach(d=>{ if(!d.paused) d.played = false; });
+    save(); render();
+    toast('Tutti i mazzi attivi sono stati giocati: nuovo giro iniziato.');
+    return true;
+  }
+  return drawPool().length > 0;
+}
+async function animateDraw(){
+  if(!state.decks.length) return toast('Aggiungi prima almeno un mazzo.');
+  if(!ensureRoundForDraw()) return toast('Nessun mazzo disponibile con i filtri attivi.');
+  const pool = drawPool();
+  if(!pool.length) return toast('Nessun mazzo disponibile con i filtri attivi.');
+  const reel = $('reelText');
+  reel.classList.add('roll');
+  const names = pool.map(d=>d.name);
+  let ticks = 0;
+  await new Promise(resolve=>{
+    const iv = setInterval(()=>{reel.textContent = names[Math.floor(Math.random()*names.length)]; ticks++; if(ticks > 16){clearInterval(iv); resolve();}}, 95);
+  });
+  const selected = pool[Math.floor(Math.random()*pool.length)];
+  reel.classList.remove('roll');
+  reel.textContent = selected.name;
+  state.selected = selected.id;
+  renderHero();
+  $('hero').classList.remove('reveal'); void $('hero').offsetWidth; $('hero').classList.add('reveal');
+  save(); render();
+}
+function openRecord(result){
+  const d = getDeck(state.selected);
+  if(!d) return toast('Seleziona o pesca prima un mazzo.');
+  pendingResult = result;
+  $('recordTitle').textContent = result === 'win' ? 'Registra vittoria' : 'Registra sconfitta';
+  $('recordDeckName').textContent = d.name;
+  $('recordDeckTags').innerHTML = `${manaIcons(d.colors)}<span class="tag">${d.format || 'Commander'}</span><span class="tag">Bracket ${d.bracket||'—'}</span>`;
+  if(d.image){$('recordArt').src = d.image; $('recordArt').classList.remove('hide')} else {$('recordArt').classList.add('hide')}
+  $('recordOpponents').value = '';
+  $('recordEnemy').value = '';
+  $('recordNotes').value = '';
+  openModal('recordModal');
+}
+function confetti(){
+  const layer = $('fxLayer');
+  const colors = ['#f0c97f','#8ec6ef','#95d6a2','#f59a84','#d9b4ff','#ffffff'];
+  for(let i=0;i<48;i++){
+    const s = document.createElement('span');
+    s.className='spark';
+    s.style.left = Math.random()*100 + 'vw';
+    s.style.background = colors[Math.floor(Math.random()*colors.length)];
+    s.style.setProperty('--dx', (Math.random()*240-120)+'px');
+    s.style.animationDuration = (900 + Math.random()*900)+'ms';
+    s.style.transform = `translateY(0) rotate(${Math.random()*120}deg)`;
+    layer.appendChild(s);
+    setTimeout(()=>s.remove(), 2100);
+  }
+}
+function showGlow(id){const el=$(id); el.classList.remove('show'); void el.offsetWidth; el.classList.add('show')}
+function registerResult(){
+  const d = getDeck(state.selected);
+  if(!d || !pendingResult) return;
+  const override = d.played || d.paused;
+  state.history.push({id:uid(), deckId:d.id, name:d.name, round:state.round, at:new Date().toISOString(), result:pendingResult, override, opponents:$('recordOpponents').value.trim(), enemy:$('recordEnemy').value.trim(), notes:$('recordNotes').value.trim()});
+  d.played = true;
+  closeModal('recordModal');
+  if(pendingResult === 'win'){confetti(); showGlow('winGlow'); toast('🏆 Vittoria registrata!');}
+  else{$('hero').classList.add('shake'); setTimeout(()=>$('hero').classList.remove('shake'), 500); showGlow('lossGlow'); toast('💀 Sconfitta registrata.');}
+  pendingResult = null;
+  state.selected = null;
+  maybeAdvanceRound();
+  save(); render();
+}
+function openEdit(id){
+  const d = getDeck(id); if(!d) return; editId = id;
+  $('editName').value = d.name; $('editCommander').value = d.commander; $('editColors').value = d.colors; $('editBracket').value = d.bracket; $('editFormat').value = d.format; $('editStrategy').value = d.strategy; $('editNotes').value = d.notes; $('editMoxfield').value = d.moxfield;
+  renderEditPreview(d); openModal('editModal');
+}
+function renderEditPreview(d){
+  $('editPreviewName').textContent = d.name;
+  $('editPreviewTags').innerHTML = `${manaIcons(d.colors)}<span class="tag">${d.format || 'Commander'}</span><span class="tag">Bracket ${d.bracket || '—'}</span><span class="tag">${d.paused ? 'In pausa' : 'Attivo'}</span>`;
+  const s = deckStats(d); $('editStats').textContent = `${s.games} partite · ${s.wins} vittorie · ${s.losses} sconfitte · ${s.games ? s.rate+'% win rate' : 'nessun risultato'}`;
+  $('editArtist').textContent = d.artist ? `Artista: ${d.artist} · © Wizards of the Coast` : '';
+  $('togglePauseBtn').textContent = d.paused ? 'Riattiva' : 'Metti in pausa';
+  $('editMoxfieldLink').classList.toggle('hide', !/^https?:\/\//i.test(d.moxfield));
+  $('editMoxfieldLink').href = d.moxfield || '#';
+  if(d.image){$('editArt').src=d.image; $('editArt').classList.remove('hide')} else {$('editArt').classList.add('hide')}
+}
+function saveEdit(){
+  const d = getDeck(editId); if(!d) return;
+  const newName = $('editName').value.trim(); if(!newName) return toast('Il nome non può essere vuoto.');
+  if(state.decks.some(x=>x.id!==d.id && x.name.toLowerCase()===newName.toLowerCase())) return toast('Esiste già un mazzo con questo nome.');
+  const oldCommander = d.commander;
+  d.name = newName;
+  d.commander = $('editCommander').value.trim() || newName;
+  d.colors = normalizeColors($('editColors').value);
+  d.bracket = $('editBracket').value;
+  d.format = $('editFormat').value;
+  d.strategy = $('editStrategy').value.trim();
+  d.notes = $('editNotes').value.trim();
+  d.moxfield = $('editMoxfield').value.trim();
+  if(d.commander !== oldCommander && !d.image) fetchCommanderArt(d);
+  save(); render(); renderEditPreview(d); closeModal('editModal'); toast('Scheda del mazzo aggiornata.');
+}
+function deleteDeck(){
+  const d = getDeck(editId); if(!d) return;
+  if(!confirm(`Eliminare il mazzo “${d.name}”?`)) return;
+  state.decks = state.decks.filter(x=>x.id!==d.id);
+  if(state.selected===d.id) state.selected = null;
+  save(); render(); closeModal('editModal'); toast('Mazzo eliminato.');
+}
+function togglePauseCurrent(){ const d=getDeck(editId); if(!d) return; d.paused=!d.paused; save(); render(); renderEditPreview(d); }
+function newRound(){
+  if(!state.decks.length) return;
+  if(!confirm('Vuoi iniziare un nuovo giro? Le statistiche restano salvate.')) return;
+  state.round += 1; state.decks.forEach(d=>{if(!d.paused)d.played=false}); state.selected=null; save(); render(); toast('Nuovo giro avviato.');
+}
+function undoLast(){
+  const h = state.history.at(-1); if(!h) return toast('Nessun risultato da annullare.');
+  if(!confirm(`Annullare l'ultimo risultato di ${h.name}?`)) return;
+  state.history.pop();
+  const d = getDeck(h.deckId);
+  if(d){
+    const stillInRound = state.history.some(x=>x.deckId===h.deckId && x.round===h.round);
+    if(!stillInRound && h.round===state.round) d.played=false;
+  }
+  save(); render(); toast('Ultimo risultato annullato.');
+}
+function exportData(){
+  const blob = new Blob([JSON.stringify({app:'DeckCycle Deluxe', version:4, data:state}, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href=url; a.download='deckcycle-deluxe-backup.json'; a.click(); setTimeout(()=>URL.revokeObjectURL(url), 1200);
+}
+function importData(file){
+  file.text().then(txt=>{
+    const parsed = JSON.parse(txt);
+    const incoming = parsed.data || parsed;
+    if(!incoming || !Array.isArray(incoming.decks) || !Array.isArray(incoming.history)) throw new Error('Struttura backup non valida');
+    state = {...DEFAULT_STATE, ...incoming};
+    state.decks = incoming.decks.map(normalizeDeck); state.filters = {...DEFAULT_STATE.filters}; if(!['magic','dark','light'].includes(state.theme)) state.theme='magic';
+    save(); render(); toast('Backup importato correttamente.');
+  }).catch(err=>toast('Importazione fallita: '+err.message));
+}
+
+$('addForm').addEventListener('submit', addDeckFromForm);
+$('drawBtn').addEventListener('click', animateDraw);
+$('rerollBtn').addEventListener('click', animateDraw);
+$('winBtn').addEventListener('click', ()=>openRecord('win'));
+$('lossBtn').addEventListener('click', ()=>openRecord('loss'));
+$('recordConfirmBtn').addEventListener('click', registerResult);
+$('newRoundBtn').addEventListener('click', newRound);
+$('undoBtn').addEventListener('click', undoLast);
+$('theme').addEventListener('change', e=>{state.theme=e.target.value; save(); render()});
+$('search').addEventListener('input', e=>{state.filters.q=e.target.value; render()});
+$('filterColor').addEventListener('change', e=>{state.filters.color=e.target.value; render()});
+$('filterBracket').addEventListener('change', e=>{state.filters.bracket=e.target.value; render()});
+$('onlyAvailableBtn').addEventListener('click', ()=>{state.filters.only=!state.filters.only; render()});
+$('deckList').addEventListener('click', e=>{
+  const btn = e.target.closest('[data-action]'); if(!btn) return;
+  const {action,id} = btn.dataset; const d = getDeck(id); if(!d) return;
+  if(action==='choose'){state.selected=id; save(); render(); toast(`Selezionato: ${d.name}`); window.scrollTo({top:0, behavior:'smooth'});}
+  if(action==='pause'){d.paused=!d.paused; save(); render(); toast(d.paused ? 'Mazzo messo in pausa.' : 'Mazzo riattivato.');}
+  if(action==='edit'){openEdit(id)}
+});
+$('saveEditBtn').addEventListener('click', saveEdit);
+$('deleteDeckBtn').addEventListener('click', deleteDeck);
+$('togglePauseBtn').addEventListener('click', togglePauseCurrent);
+$('refreshArtBtn').addEventListener('click', ()=>{const d=getDeck(editId); if(!d) return; d.commander=$('editCommander').value.trim()||d.name; d.name=$('editName').value.trim()||d.name; d.colors=''; fetchCommanderArt(d,true); renderEditPreview(d)});
+$('exportBtn').addEventListener('click', exportData);
+$('importBtn').addEventListener('click', ()=>$('importFile').click());
+$('importFile').addEventListener('change', e=>{const f=e.target.files?.[0]; if(f) importData(f); e.target.value=''});
+
+document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click', ()=>closeModal(b.dataset.close)));
+document.querySelectorAll('.modalBg').forEach(bg=>bg.addEventListener('click', e=>{if(e.target===bg) closeModal(bg.id)}));
+
+document.addEventListener('keydown', e=>{if(e.key==='Escape') document.querySelectorAll('.modalBg.open').forEach(el=>closeModal(el.id))});
+
+applyTheme(); render();
+})();
+</script>
+<script>
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+}
+</script>
+</body>
+</html>

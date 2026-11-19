@@ -1,0 +1,8 @@
+DeckCycle per iPhone — installazione
+
+1. Pubblica tutta questa cartella su un servizio HTTPS (ad esempio Netlify Drop: https://app.netlify.com/drop). Carica il file ZIP o la cartella del sito, secondo le opzioni del servizio.
+2. Apri l’indirizzo pubblico restituito dal servizio in Safari su iPhone.
+3. Tocca Condividi e scegli Aggiungi alla schermata Home (in alcune versioni di iOS: Apri come app web / Aggiungi).
+4. Apri DeckCycle dall’icona comparsa sulla schermata Home.
+
+Nota: aprire index.html direttamente da File non installa una PWA. La sincronizzazione cloud non è inclusa. I dati sono salvati localmente per ogni origine e modalità di apertura: esporta sempre un backup dalla precedente versione prima di migrare, e importalo nella nuova installazione. Le immagini Scryfall richiedono rete; la base dell’app può funzionare offline dopo il primo caricamento.
