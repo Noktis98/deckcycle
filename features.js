@@ -381,4 +381,5 @@
     init,setTab,renderAnalysis,artFor,animateReel,prepareOpponents,collectOpponents,
     artCache,showArtDeck,classify
   };
+  init();
 })();
