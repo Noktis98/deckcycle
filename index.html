@@ -1171,6 +1171,7 @@ function importData(file){
       render();
       toast('Backup importato correttamente, incluse le liste se presenti.');
       warmArchiveBackup();
+      window.DeckCycleExtras?.hydrateArtworks();
     }
   });
 }
