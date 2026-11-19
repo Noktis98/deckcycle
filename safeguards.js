@@ -171,7 +171,10 @@
       json = JSON.stringify(state);
       var current = localStorage.getItem(key);
       if (json === current) return true;
-      if (current) checkpoint(key, 'Automatica', false, false);
+      if (current) {
+        checkpoint(key, 'Automatica', false, false);
+        if (blocked) return false; // Il checkpoint ha rilevato dati illeggibili: non sovrascriverli.
+      }
       localStorage.setItem(key, json);
       if (warningText) clearWarning();
       return true;
