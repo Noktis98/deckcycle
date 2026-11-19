@@ -48,6 +48,7 @@
   }
 
   async function hydrateArtworks() {
+    artCache.clear();
     const decks = app().getState().decks;
     for (const deck of decks) {
       if (!deck.customArt) continue;
@@ -263,10 +264,14 @@
     let unknown=0,known=0;
     for(const entry of entries){
       const card=cardMap.get(archive().keyOf(entry));
-      if(!card){unknown+=entry.quantity;continue}
+      const manuallySet=overrides?.get(entry.name.toLowerCase().normalize('NFKC'));
+      if(!card){
+        unknown+=entry.quantity;
+        if(manuallySet) for(const key of manuallySet)tally[key]+=entry.quantity;
+        continue;
+      }
       known+=entry.quantity;
       const text=String(card.oracleText||'');
-      const manuallySet=overrides?.get(entry.name.toLowerCase().normalize('NFKC'));
       for(const [key,pattern] of Object.entries(behavior)){
         if(manuallySet ? manuallySet.includes(key) : pattern.test(text))tally[key]+=entry.quantity;
       }
