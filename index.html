@@ -600,8 +600,13 @@ function afterHistoryRemoval(removed){
      state.roundOrigin === 'auto' &&
      state.round === Number(removed.round||1) + 1 &&
      !state.history.some(h => Number(h.round||1) === state.round)){
-    state.round = Number(removed.round||1);
-    state.roundOrigin = 'manual';
+    // Un secondo risultato manuale dello stesso mazzo può aver già completato il giro.
+    const usedBefore = new Set(state.history.filter(h => Number(h.round||1) === Number(removed.round||1)).map(h => h.deckId));
+    const stillComplete = activeDecks().length > 0 && activeDecks().every(d => usedBefore.has(d.id));
+    if(!stillComplete){
+      state.round = Number(removed.round||1);
+      state.roundOrigin = 'manual';
+    }
   }
   syncPlayedWithCurrentRound();
 }
@@ -667,7 +672,7 @@ function renderHistory(){
   box.innerHTML = shown.map(h=>`<div class="timeCard">
     <div>
       <div class="timeTitle">${escapeHtml(h.name)} <span class="${h.result==='win'?'resultWin':'resultLoss'}">${h.result==='win'?'Vittoria':'Sconfitta'}</span></div>
-      <div class="timeMeta">${formatDate(h.at)} · Giro ${h.round || 1}${h.override ? ' · scelto manualmente' : ''}${getDeck(h.deckId) ? '' : ' · mazzo eliminato'}</div>
+      <div class="timeMeta">${formatDate(h.at)} · Giro ${escapeHtml(h.round || 1)}${h.override ? ' · scelto manualmente' : ''}${getDeck(h.deckId) ? '' : ' · mazzo eliminato'}</div>
       ${h.opponents ? `<div class="timeMeta">Avversari: ${escapeHtml(h.opponents)}</div>` : ''}
       ${h.enemy ? `<div class="timeMeta">Comandanti affrontati: ${escapeHtml(h.enemy)}</div>` : ''}
       ${h.notes ? `<div class="timeMeta">Note: ${escapeHtml(h.notes)}</div>` : ''}
