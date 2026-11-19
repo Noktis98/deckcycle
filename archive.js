@@ -9,6 +9,8 @@
   const CARD_AGE = 90 * 86400000;
   const GROUPS = ['Creature', 'Planeswalker', 'Artefatti', 'Incantesimi', 'Istantanei', 'Stregonerie', 'Terre', 'Battaglie', 'Altro'];
   let opening;
+  let exportSnapshot = null;
+  let exporting = null;
 
   function open() {
     if (!('indexedDB' in window) || !window.indexedDB) {
@@ -162,6 +164,11 @@
       listStore.put(payload);
     };
     await txResult(tx);
+    if (exportSnapshot) {
+      const i = exportSnapshot.lists.findIndex(item => item.deckId === payload.deckId);
+      if (i === -1) exportSnapshot.lists.push(payload);
+      else exportSnapshot.lists[i] = payload;
+    }
     return payload;
   }
 
@@ -188,6 +195,23 @@
     return { schemaVersion: 1, lists: lists.map(asList) };
   }
 
+  function warmExport() {
+    if (exporting) return exporting;
+    exporting = exportAll().then(data => {
+      exportSnapshot = data;
+      return data;
+    }).finally(() => { exporting = null; });
+    return exporting;
+  }
+
+  function readyExport() {
+    // Restituisce una fotografia sincrona: non perde la user gesture
+    // richiesta dal menu Condividi di Safari/iOS.
+    return exportSnapshot ? {schemaVersion: 1, lists: exportSnapshot.lists.map(item => ({
+      ...item, entries: item.entries.map(entry => ({ ...entry }))
+    }))} : null;
+  }
+
   function validateBackupArchive(archive) {
     if (archive == null) return [];
     if (!archive || archive.schemaVersion !== 1 || !Array.isArray(archive.lists) ||
@@ -203,13 +227,11 @@
     });
   }
 
-  async function importAll(archive, validDeckIds) {
+  async function importAll(archive) {
     const lists = validateBackupArchive(archive);
     if (!lists.length) return 0;
-    const permitted = new Set(validDeckIds);
-    if (lists.some(item => !permitted.has(item.deckId))) {
-      throw new Error('Il backup contiene liste senza un mazzo corrispondente.');
-    }
+    // Conserviamo anche liste di mazzi eliminati: non sovrascrivono lo
+    // storico e possono essere recuperate da futuri strumenti di ripristino.
     const db = await open();
     const tx = db.transaction(['lists', 'revisions'], 'readwrite');
     const store = tx.objectStore('lists');
@@ -223,6 +245,13 @@
       };
     });
     await txResult(tx);
+    if (exportSnapshot) {
+      lists.forEach(item => {
+        const i = exportSnapshot.lists.findIndex(saved => saved.deckId === item.deckId);
+        if (i === -1) exportSnapshot.lists.push(item);
+        else exportSnapshot.lists[i] = item;
+      });
+    }
     return lists.length;
   }
 
@@ -359,7 +388,7 @@
   }
 
   window.DeckCycleArchive = {
-    open, parseDecklist, saveBaseline, loadDeck, saveDeck, exportAll,
+    open, parseDecklist, saveBaseline, loadDeck, saveDeck, exportAll, warmExport, readyExport,
     validateBackupArchive, importAll, cachedCards, fetchScryfall, summarize, category, keyOf
   };
 })();
