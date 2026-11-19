@@ -703,6 +703,8 @@ function normalizeDeck(d){
     moxfield: typeof d.moxfield === 'string' ? d.moxfield : '',
     image: typeof d.image === 'string' ? d.image : '',
     artist: d.artist || '',
+    customArt: !!d.customArt,
+    versionTag: typeof d.versionTag === 'string' ? d.versionTag : '',
     played: !!d.played,
     paused: !!d.paused
   }
@@ -721,6 +723,7 @@ function toast(msg){
 }
 function applyTheme(){document.documentElement.dataset.theme = state.theme; $('theme').value = state.theme}
 function getDeck(id){return state.decks.find(d=>d.id===id)}
+function chosenArt(deck){return window.DeckCycleExtras?.artFor(deck) || (deck && deck.image) || ''}
 function deckStats(deck){
   const list = state.history.filter(h => h.deckId === deck.id);
   const wins = list.filter(h => h.result === 'win').length;
@@ -828,7 +831,7 @@ function renderHero(){
   $('heroFormat').textContent = d.format || 'Commander';
   $('heroStatus').textContent = d.paused ? 'In pausa (selezionato manualmente)' : d.played ? 'Già usato nel giro' : 'Disponibile';
   hero.style.setProperty('--deck-bg', deckGradient(d.colors));
-  if(d.image){$('heroArt').src=d.image; $('heroArt').classList.remove('hide')} else {$('heroArt').classList.add('hide'); $('heroArt').removeAttribute('src')}
+  if(chosenArt(d)){$('heroArt').src=chosenArt(d); $('heroArt').classList.remove('hide')} else {$('heroArt').classList.add('hide'); $('heroArt').removeAttribute('src')}
 }
 function renderDeckList(){
   const list = $('deckList');
@@ -836,16 +839,16 @@ function renderDeckList(){
   if(!decks.length){list.innerHTML = `<div class="empty">Nessun mazzo da mostrare con i filtri attivi.</div>`;return}
   list.innerHTML = decks.map(d=>{
     const s = deckStats(d);
-    const tags = [d.bracket?`<span class="tag">Bracket ${d.bracket}</span>`:'', d.format?`<span class="tag">${d.format}</span>`:'', d.paused?`<span class="tag" style="color:var(--red)">In pausa</span>`:'', d.played?`<span class="tag" style="color:var(--gold)">Giocato</span>`:`<span class="tag" style="color:var(--green)">Disponibile</span>`].join('');
+    const tags = [d.bracket?`<span class="tag">Bracket ${escapeHtml(d.bracket)}</span>`:'', d.format?`<span class="tag">${escapeHtml(d.format)}</span>`:'', d.paused?`<span class="tag" style="color:var(--red)">In pausa</span>`:'', d.played?`<span class="tag" style="color:var(--gold)">Giocato</span>`:`<span class="tag" style="color:var(--green)">Disponibile</span>`].join('');
     return `<div class="deckCard ${d.played?'played':''} ${d.paused?'paused':''}">
-      <img class="deckThumb" src="${d.image || ''}" alt="" onerror="this.removeAttribute('src')">
+      <img class="deckThumb" src="${escapeHtml(chosenArt(d))}" alt="" onerror="this.removeAttribute('src')">
       <div class="deckInfo">
         <div class="deckName">${escapeHtml(d.name)}</div>
         <div class="deckMeta">${manaIcons(d.colors)} ${tags}</div>
         <div class="miniStat">${s.games} partite · ${s.wins}W / ${s.losses}L · ${s.games ? s.rate+'%' : '—'} win rate</div>
       </div>
       <div class="deckActions">
-        <button class="miniBtn" data-action="choose" data-id="${d.id}">Usa</button>
+        <button class="miniBtn" data-action="choose" data-id="${escapeHtml(d.id)}">Usa</button>
         <button class="miniBtn" data-action="pause" data-id="${d.id}">${d.paused?'Riattiva':'Pausa'}</button>
         <button class="miniBtn" data-action="edit" data-id="${d.id}">Scheda</button>
         <button class="miniBtn" data-action="list" data-id="${d.id}">Lista</button>
@@ -867,6 +870,8 @@ function renderHistory(){
       ${h.opponents ? `<div class="timeMeta">Avversari: ${escapeHtml(h.opponents)}</div>` : ''}
       ${h.enemy ? `<div class="timeMeta">Comandanti affrontati: ${escapeHtml(h.enemy)}</div>` : ''}
       ${h.notes ? `<div class="timeMeta">Note: ${escapeHtml(h.notes)}</div>` : ''}
+      ${h.problems ? `<div class="timeMeta">Difficoltà: ${escapeHtml(h.problems)}</div>` : ''}
+      ${h.deckVersion ? `<div class="timeMeta">Versione: ${escapeHtml(new Date(h.deckVersion).toLocaleDateString('it-IT'))}</div>` : ''}
       <div class="historyActions"><button class="miniBtn" type="button" data-history-action="edit" data-history-id="${escapeHtml(h.id)}">Correggi</button></div>
     </div>
     <div class="${h.result==='win'?'resultWin':'resultLoss'}">${h.result==='win'?'🏆':'💀'}</div>
@@ -921,6 +926,7 @@ function render(){
   $('filterColor').value = state.filters.color || '';
   $('filterBracket').value = state.filters.bracket || '';
   renderHero(); renderDeckList(); renderHistory(); renderRanking(); renderMonths(); save();
+  if(document.body.dataset.activeTab==='analysis') window.DeckCycleExtras?.renderAnalysis();
 }
 function escapeHtml(str){return String(str||'').replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
 function openModal(id){$(id).classList.add('open')}
@@ -928,6 +934,7 @@ function closeModal(id){$(id).classList.remove('open')}
 
 async function fetchCommanderArt(deck, notify=false){
   const query = encodeURIComponent(deck.commander || deck.name);
+  if(deck.customArt && !notify) return;
   try{
     const res = await fetch(`https://api.scryfall.com/cards/named?fuzzy=${query}`, {headers:{accept:'application/json'}});
     if(!res.ok) throw new Error('not-found');
@@ -935,6 +942,11 @@ async function fetchCommanderArt(deck, notify=false){
     const face = card.card_faces?.[0];
     deck.image = card.image_uris?.art_crop || face?.image_uris?.art_crop || card.image_uris?.normal || face?.image_uris?.normal || '';
     deck.artist = card.artist || face?.artist || '';
+    if(notify && deck.customArt){
+      deck.customArt=false;
+      window.DeckCycleExtras?.artCache.delete(deck.id);
+      window.DeckCycleArchive.removeArtwork(deck.id).catch(()=>{});
+    }
     if(!deck.colors) deck.colors = normalizeColors((card.color_identity||[]).join(''));
     save(); render(); if(notify) toast('Artwork aggiornato da Scryfall.');
   }catch(err){ if(notify) toast('Non sono riuscito a recuperare l’artwork da Scryfall.'); }
@@ -961,26 +973,28 @@ function ensureRoundForDraw(){
   }
   return drawPool().length > 0;
 }
+let drawingNow = false;
 async function animateDraw(){
+  if(drawingNow) return;
   if(!state.decks.length) return toast('Aggiungi prima almeno un mazzo.');
   if(!ensureRoundForDraw()) return toast('Nessun mazzo disponibile con i filtri attivi.');
-  const pool = drawPool();
+  const pool=drawPool();
   if(!pool.length) return toast('Nessun mazzo disponibile con i filtri attivi.');
-  const reel = $('reelText');
-  reel.classList.add('roll');
-  const names = pool.map(d=>d.name);
-  let ticks = 0;
-  await new Promise(resolve=>{
-    const iv = setInterval(()=>{reel.textContent = names[Math.floor(Math.random()*names.length)]; ticks++; if(ticks > 16){clearInterval(iv); resolve();}}, 95);
-  });
-  const selected = pool[Math.floor(Math.random()*pool.length)];
-  state.selectedManually = false;
-  reel.classList.remove('roll');
-  reel.textContent = selected.name;
-  state.selected = selected.id;
-  renderHero();
-  $('hero').classList.remove('reveal'); void $('hero').offsetWidth; $('hero').classList.add('reveal');
-  save(); render();
+  // Scegli il vincitore prima dell'animazione: ogni mazzo del pool ha la stessa probabilità.
+  const selected=pool[Math.floor(Math.random()*pool.length)];
+  drawingNow=true;
+  $('drawBtn').disabled=true;
+  $('rerollBtn').disabled=true;
+  try{
+    if(window.DeckCycleExtras) await window.DeckCycleExtras.animateReel(pool,selected);
+    else $('reelText').textContent=selected.name;
+    state.selected=selected.id;
+    state.selectedManually=false;
+    renderHero();
+    $('hero').classList.remove('reveal'); void $('hero').offsetWidth; $('hero').classList.add('reveal');
+    save();render();
+  }catch(error){toast('Sorteggio interrotto: '+error.message)}
+  finally{drawingNow=false;$('drawBtn').disabled=false;$('rerollBtn').disabled=false;}
 }
 function openRecord(result){
   const d = getDeck(state.selected);
@@ -989,10 +1003,11 @@ function openRecord(result){
   $('recordTitle').textContent = result === 'win' ? 'Registra vittoria' : 'Registra sconfitta';
   $('recordDeckName').textContent = d.name;
   $('recordDeckTags').innerHTML = `${manaIcons(d.colors)}<span class="tag">${d.format || 'Commander'}</span><span class="tag">Bracket ${d.bracket||'—'}</span>`;
-  if(d.image){$('recordArt').src = d.image; $('recordArt').classList.remove('hide')} else {$('recordArt').classList.add('hide')}
+  if(chosenArt(d)){$('recordArt').src = chosenArt(d); $('recordArt').classList.remove('hide')} else {$('recordArt').classList.add('hide')}
   $('recordOpponents').value = '';
   $('recordEnemy').value = '';
   $('recordNotes').value = '';
+  window.DeckCycleExtras?.prepareOpponents();
   openModal('recordModal');
 }
 function confetti(){
@@ -1015,7 +1030,17 @@ function registerResult(){
   const d = getDeck(state.selected);
   if(!d || !pendingResult) return;
   const override = !!state.selectedManually || d.played || d.paused;
-  state.history.push({id:uid(), deckId:d.id, name:d.name, round:state.round, at:new Date().toISOString(), result:pendingResult, override, opponents:$('recordOpponents').value.trim(), enemy:$('recordEnemy').value.trim(), notes:$('recordNotes').value.trim()});
+  const opponents = window.DeckCycleExtras?.collectOpponents() || [];
+  state.history.push({
+    id:uid(), deckId:d.id, name:d.name, round:state.round, at:new Date().toISOString(),
+    result:pendingResult, override,
+    deckVersion:d.versionTag||'',
+    opponents:$('recordOpponents').value.trim() || opponents.map(x=>x.name).filter(Boolean).join(', '),
+    enemy:$('recordEnemy').value.trim() || opponents.map(x=>x.commander).filter(Boolean).join(', '),
+    opponentCommanders:opponents,
+    notes:$('recordNotes').value.trim(),
+    problems:$('recordProblems').value.trim()
+  });
   d.played = true;
   closeModal('recordModal');
   if(pendingResult === 'win'){confetti(); showGlow('winGlow'); toast('🏆 Vittoria registrata!');}
@@ -1039,7 +1064,7 @@ function renderEditPreview(d){
   $('togglePauseBtn').textContent = d.paused ? 'Riattiva' : 'Metti in pausa';
   $('editMoxfieldLink').classList.toggle('hide', !/^https?:\/\//i.test(d.moxfield));
   $('editMoxfieldLink').href = d.moxfield || '#';
-  if(d.image){$('editArt').src=d.image; $('editArt').classList.remove('hide')} else {$('editArt').classList.add('hide')}
+  if(chosenArt(d)){$('editArt').src=chosenArt(d); $('editArt').classList.remove('hide')} else {$('editArt').classList.add('hide')}
 }
 function saveEdit(){
   const d = getDeck(editId); if(!d) return;
@@ -1209,6 +1234,19 @@ warmArchiveBackup();
 document.addEventListener('visibilitychange', ()=>{
   if(document.visibilityState === 'visible') warmArchiveBackup();
 });
+window.DeckCycleApp={
+  getState:()=>state,
+  getDeck,
+  getEditingDeckId:()=>editId,
+  save,render,toast,
+  onListSaved(deckId,at){
+    const deck=getDeck(deckId);
+    if(!deck)return;
+    deck.versionTag=at;
+    save();
+    if(document.body.dataset.activeTab==='analysis')window.DeckCycleExtras?.renderAnalysis();
+  }
+};
 })();
 </script>
 <script src="./features.js"></script>
