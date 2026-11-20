@@ -245,29 +245,15 @@
     }
     if (drawing) return Promise.resolve();
     drawing = true;
-    const duration = 2700;
-    const sequence = [];
-    // Mazzi mescolati senza ripetizioni consecutive nella sequenza visiva.
-    // L'animazione non cambia la probabilità della scelta, già effettuata.
-    let bag = [];
-    let previousId = null;
-    for (let i = 0; i < 22; i++) {
-      if (!bag.length) {
-        bag = pool.slice();
-        for (let j = bag.length - 1; j > 0; j--) {
-          const k = Math.floor(Math.random() * (j + 1));
-          [bag[j], bag[k]] = [bag[k], bag[j]];
-        }
-        if (bag.length > 1 && bag[0].id === previousId) {
-          const other = bag.findIndex(deck => deck.id !== previousId);
-          [bag[0], bag[other]] = [bag[other], bag[0]];
-        }
-      }
-      const item = bag.shift();
-      sequence.push(item);
-      previousId = item.id;
+    // Roulette con carte tutte differenti: il vincitore compare solo alla fine.
+    // Le probabilità restano uniformi perché il sorteggio viene fatto prima.
+    const others = pool.filter(item => item.id !== winner.id);
+    for (let i = others.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [others[i], others[j]] = [others[j], others[i]];
     }
-    sequence.push(winner); // Il vincitore rimane quello estratto prima dell'animazione.
+    const sequence = [...others.slice(0, 18), winner];
+    const duration = Math.min(2800, Math.max(850, sequence.length * 330));
 
     const rail = document.createElement('div');
     rail.className = 'drawRail';
