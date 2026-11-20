@@ -860,8 +860,9 @@ function renderHero(){
   $('sRate').textContent = t.games ? `${t.rate}%` : '—';
   $('roundInfo').textContent = `Giro partite ${state.round}`;
   const ds=drawStats();
+  const remainingLabel=ds.remaining===1 ? '1 mazzo rimasto' : ds.remaining+' mazzi rimasti';
   $('drawProgress').textContent = ds.eligible ?
-    `🎲 Giro estrazioni ${state.drawSeries} · ${ds.seen}/${ds.eligible} selezionati · ${ds.remaining} mazzi rimasti` :
+    `🎲 Giro estrazioni ${state.drawSeries} · ${ds.seen}/${ds.eligible} selezionati · ${remainingLabel}` :
     '🎲 Nessun mazzo attivo da estrarre';
   $('drawProgress').classList.toggle('drawCompleted',ds.eligible>0 && ds.remaining===0);
   const hero = $('hero');
