@@ -6,7 +6,9 @@
 <meta name="theme-color" content="#120f1e">
 <title>DeckCycle Deluxe</title>
 <link rel="manifest" href="./manifest.webmanifest">
-<link rel="apple-touch-icon" href="./icon-180.png">
+<link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png?v=20261120-1">
+<link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png?v=20261120-1">
+<link rel="icon" type="image/png" sizes="512x512" href="./icon-512.png?v=20261120-1">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="DeckCycle">
@@ -258,6 +260,9 @@ body.deckcycle-tabs .stack:empty{display:none}
 .opponentRow .field{min-width:0;padding:9px 8px;font-size:12px}
 .opponentArt{width:38px;height:47px;object-fit:cover;border-radius:7px;background:var(--panel3)}
 .opponentRow .pillBtn{padding:8px 5px;min-height:38px}
+.drawProgress{margin:12px auto 0;padding:10px 12px;text-align:center;font-weight:800;color:var(--gold);border:1px solid var(--line);border-radius:11px;background:var(--panel2)}
+.drawProgress.drawCompleted{color:var(--green)}
+.drawProgressHelp{font-size:11px;color:var(--muted);text-align:center;line-height:1.5;margin-top:7px}
 .drawViewport{position:absolute;inset:0;overflow:hidden;display:flex;align-items:flex-start;justify-content:center;pointer-events:none}
 .reelWrap{position:relative;overflow:hidden;min-height:152px;height:152px}
 .drawRail{display:flex;flex-direction:column;gap:8px;align-items:stretch;width:min(100%,420px);will-change:transform}
@@ -363,9 +368,10 @@ body.deckcycle-tabs .stack:empty{display:none}
           <div class="reelWrap">
             <div class="reelText" id="reelText">Tocca “Pesca un mazzo”</div>
           </div>
-          <div id="drawProgress" class="sectionSub" style="margin-top:10px;text-align:center" aria-live="polite">
-            Serie estrazioni 1 · Non ancora iniziata
+          <div id="drawProgress" class="drawProgress" aria-live="polite">
+            🎲 Giro estrazioni 1 · Non ancora iniziato
           </div>
+          <div class="drawProgressHelp">Il mazzo viene escluso appena è estratto o scelto. Vittorie e sconfitte aggiornano soltanto le statistiche delle partite.</div>
         </div>
       </section>
 
@@ -769,9 +775,11 @@ function unplayedActive(){return state.decks.filter(d=>!d.paused&&!d.played)}
 function drawnSet(){return new Set(state.drawnIds||[])}
 function unseenPool(){const drawn=drawnSet();return drawPool().filter(d=>!drawn.has(d.id))}
 function drawStats(){
-  const eligible=unplayedActive();
+  // Il contatore considera tutti i mazzi attivi, anche quelli con partita già
+  // registrata: una vittoria/sconfitta non deve far diminuire il totale.
+  const eligible=activeDecks();
   const seen=drawnSet();
-  const seenCount=eligible.filter(d=>seen.has(d.id)).length;
+  const seenCount=eligible.filter(d=>seen.has(d.id) || d.played).length;
   return {eligible:eligible.length,seen:seenCount,remaining:eligible.length-seenCount};
 }
 function restartDrawSeries(){
@@ -852,7 +860,10 @@ function renderHero(){
   $('sRate').textContent = t.games ? `${t.rate}%` : '—';
   $('roundInfo').textContent = `Giro partite ${state.round}`;
   const ds=drawStats();
-  $('drawProgress').textContent = `Serie estrazioni ${state.drawSeries} · ${ds.seen} estratti su ${ds.eligible} · ${ds.remaining} da pescare`;
+  $('drawProgress').textContent = ds.eligible ?
+    `🎲 Giro estrazioni ${state.drawSeries} · ${ds.seen}/${ds.eligible} selezionati · ${ds.remaining} mazzi rimasti` :
+    '🎲 Nessun mazzo attivo da estrarre';
+  $('drawProgress').classList.toggle('drawCompleted',ds.eligible>0 && ds.remaining===0);
   const hero = $('hero');
   if(!d){
     $('heroName').textContent = 'Pronto per il prossimo giro?';
@@ -1110,6 +1121,7 @@ function registerResult(){
     problems:$('recordProblems').value.trim()
   });
   d.played = true;
+  if(!state.drawnIds.includes(d.id))state.drawnIds.push(d.id);
   closeModal('recordModal');
   if(pendingResult === 'win'){confetti(); showGlow('winGlow'); toast('🏆 Vittoria registrata!');}
   else{$('hero').classList.add('shake'); setTimeout(()=>$('hero').classList.remove('shake'), 500); showGlow('lossGlow'); toast('💀 Sconfitta registrata.');}
@@ -1277,7 +1289,13 @@ $('onlyAvailableBtn').addEventListener('click', ()=>{state.filters.only=!state.f
 $('deckList').addEventListener('click', e=>{
   const btn = e.target.closest('[data-action]'); if(!btn) return;
   const {action,id} = btn.dataset; const d = getDeck(id); if(!d) return;
-  if(action==='choose'){state.selected=id; state.selectedManually=true; save(); render(); toast(`Selezionato: ${d.name}`); window.scrollTo({top:0, behavior:'smooth'});}
+  if(action==='choose'){
+    state.selected=id; state.selectedManually=true;
+    if(!d.paused && !state.drawnIds.includes(id))state.drawnIds.push(id);
+    save(); render();
+    toast(`Selezionato: ${d.name}`);
+    window.DeckCycleExtras?.setTab('play');
+  }
   if(action==='pause'){d.paused=!d.paused; save(); render(); toast(d.paused ? 'Mazzo messo in pausa.' : 'Mazzo riattivato.');}
   if(action==='edit'){openEdit(id)}
   if(action==='list'){window.DeckCycleArchiveUI.open(d)}
