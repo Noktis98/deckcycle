@@ -1,4 +1,5 @@
 // ScryCheck proxy for DeckCycle (Netlify Functions / Node 18+).
+import { timingSafeEqual } from 'node:crypto';
 // The production key belongs ONLY in Netlify environment variables.
 // Never use this function as a public, unrestricted API resale service.
 const ENDPOINT = 'https://scrycheck.com/api/v1';
@@ -47,6 +48,14 @@ function normalizeInput(value) {
     commanders: commanders.map(x=>x.trim())
   };
 }
+function validAccessCode(given, expected) {
+  if (typeof given !== 'string' || given.length < 12 || given.length > 160 ||
+      typeof expected !== 'string' || expected.length < 12 || expected.length > 160) return false;
+  const left = Buffer.from(given, 'utf8');
+  const right = Buffer.from(expected, 'utf8');
+  return left.length === right.length && timingSafeEqual(left,right);
+}
+
 function filterResponse(body) {
   if (!body || body.success !== true || !body.data || typeof body.data !== 'object') return null;
   const data = body.data;
@@ -71,7 +80,13 @@ export default async function scrycheckProxy(request) {
     return error(403,'FORBIDDEN','Richiesta da un dominio diverso.');
   }
   const secret = process.env.SCRYCHECK_API_KEY;
-  if (!secret) return error(503,'NOT_CONFIGURED','Chiave ScryCheck non ancora configurata su Netlify.');
+  const accessCode = process.env.SCRYCHECK_ACCESS_CODE;
+  if (!secret || !accessCode || accessCode.length < 12) {
+    return error(503,'NOT_CONFIGURED','Configura SCRYCHECK_API_KEY e SCRYCHECK_ACCESS_CODE nelle variabili riservate Netlify.');
+  }
+  if (!validAccessCode(request.headers.get('x-deckcycle-access-code'), accessCode)) {
+    return error(403,'ACCESS_DENIED','Codice personale DeckCycle non valido.');
+  }
 
   let endpoint = ENDPOINT + '/analyze';
   let upstreamMethod = 'POST';
@@ -134,8 +149,8 @@ export default async function scrycheckProxy(request) {
   }
 }
 
-// Rate limiting is enforced by Netlify per client IP and domain.
-// This mitigates abuse but does not provide authentication or a global daily cap.
+// Rate limiting + a separate private access code mitigate anonymous quota abuse.
+// Rotate both secrets if disclosed; rate limiting is not a global daily cap.
 export const config = {
   path: '/api/scrycheck',
   rateLimit: {
