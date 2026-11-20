@@ -347,20 +347,24 @@ body.deckcycle-tabs .stack:empty{display:none}
         <div class="sectionHeader">
           <div>
             <div class="sectionTitle">Sorteggio animato</div>
-            <div class="sectionSub">Usa i filtri attivi per limitare il pool dei mazzi da pescare.</div>
+            <div class="sectionSub">Le estrazioni non si ripetono nella stessa serie, anche senza registrare una partita. I giri delle partite e le statistiche rimangono separati.</div>
           </div>
           <div class="row">
-            <button class="pillBtn" id="newRoundBtn">Nuovo giro</button>
+            <button class="pillBtn" id="newRoundBtn" type="button">Nuovo giro partite</button>
+            <button class="pillBtn" id="resetDrawBtn" type="button">Ricomincia estrazioni</button>
             <button class="pillBtn" id="undoBtn">Annulla ultimo risultato</button>
           </div>
         </div>
         <div class="drawMachine">
           <div class="machineTop">
             <div class="machineLabel">Ruota del destino</div>
-            <div class="sectionSub" id="roundInfo">Giro 1</div>
+            <div class="sectionSub" id="roundInfo">Giro partite 1</div>
           </div>
           <div class="reelWrap">
             <div class="reelText" id="reelText">Tocca “Pesca un mazzo”</div>
+          </div>
+          <div id="drawProgress" class="sectionSub" style="margin-top:10px;text-align:center" aria-live="polite">
+            Serie estrazioni 1 · Non ancora iniziata
           </div>
         </div>
       </section>
@@ -671,8 +675,13 @@ body.deckcycle-tabs .stack:empty{display:none}
 (() => {
 const KEY = 'deckcycle_magic_v1';
 const $ = id => document.getElementById(id);
-const DEFAULT_STATE = {decks:[], history:[], round:1, roundOrigin:'manual', selected:null, selectedManually:false, theme:'magic', filters:{q:'', color:'', bracket:'', only:false}};
+const DEFAULT_STATE = {decks:[], history:[], round:1, roundOrigin:'manual', selected:null, selectedManually:false, drawSeries:1, drawnIds:[], theme:'magic', filters:{q:'', color:'', bracket:'', only:false}};
 let state = load();
+// Compatibile con i backup precedenti: non cambia nessuna partita registrata.
+if(!Array.isArray(state.drawnIds)) state.drawnIds = [];
+state.drawnIds = [...new Set(state.drawnIds.filter(id =>
+  typeof id === 'string' && state.decks.some(d=>d.id===id)))];
+state.drawSeries = Number.isInteger(state.drawSeries) && state.drawSeries>0 ? state.drawSeries : 1;
 let editId = null;
 let pendingResult = null;
 let editingHistoryId = null;
@@ -756,6 +765,28 @@ function matchesFilters(d){
   return true;
 }
 function drawPool(){return state.decks.filter(d => !d.paused && !d.played && matchesFilters(d))}
+function unplayedActive(){return state.decks.filter(d=>!d.paused&&!d.played)}
+function drawnSet(){return new Set(state.drawnIds||[])}
+function unseenPool(){const drawn=drawnSet();return drawPool().filter(d=>!drawn.has(d.id))}
+function drawStats(){
+  const eligible=unplayedActive();
+  const seen=drawnSet();
+  const seenCount=eligible.filter(d=>seen.has(d.id)).length;
+  return {eligible:eligible.length,seen:seenCount,remaining:eligible.length-seenCount};
+}
+function restartDrawSeries(){
+  state.drawnIds=[];
+  state.drawSeries = (Number(state.drawSeries)||1)+1;
+}
+function resetDrawsManually(){
+  if(!state.decks.length)return toast('Aggiungi prima un mazzo.');
+  if(!confirm('Ricominciare le estrazioni? Non cambierà vittorie, sconfitte o giro delle partite.'))return;
+  restartDrawSeries();
+  state.selected=null;
+  state.selectedManually=false;
+  $('reelText').textContent='Tocca “Pesca un mazzo”';
+  save();render();toast('Nuova serie di estrazioni avviata.');
+}
 function manaIcons(colors){
   const arr = (colors||'').split('').filter(Boolean);
   return arr.length ? arr.map(c=>`<span class="mana m${c}">${c}</span>`).join('') : `<span class="mana mC">C</span>`;
@@ -776,6 +807,9 @@ function advanceRound(origin){
   state.roundOrigin = origin;
   // Anche i mazzi in pausa ripartiranno come disponibili quando saranno riattivati.
   state.decks.forEach(d => { d.played = false; });
+  // Il nuovo giro partite riparte anche con una serie di estrazioni pulita.
+  state.drawnIds=[];
+  state.drawSeries=1;
   state.selected = null;
   state.selectedManually = false;
 }
@@ -816,7 +850,9 @@ function renderHero(){
   $('sAvailable').textContent = state.decks.filter(x=>!x.paused && !x.played).length;
   $('sGames').textContent = t.games;
   $('sRate').textContent = t.games ? `${t.rate}%` : '—';
-  $('roundInfo').textContent = `Giro ${state.round}`;
+  $('roundInfo').textContent = `Giro partite ${state.round}`;
+  const ds=drawStats();
+  $('drawProgress').textContent = `Serie estrazioni ${state.drawSeries} · ${ds.seen} estratti su ${ds.eligible} · ${ds.remaining} da pescare`;
   const hero = $('hero');
   if(!d){
     $('heroName').textContent = 'Pronto per il prossimo giro?';
@@ -835,7 +871,9 @@ function renderHero(){
   $('heroColors').innerHTML = manaIcons(d.colors);
   $('heroBracket').textContent = `Bracket ${d.bracket || '—'}`;
   $('heroFormat').textContent = d.format || 'Commander';
-  $('heroStatus').textContent = d.paused ? 'In pausa (selezionato manualmente)' : d.played ? 'Già usato nel giro' : 'Disponibile';
+  $('heroStatus').textContent = d.paused ? 'In pausa (selezionato manualmente)' :
+    d.played ? 'Partita già registrata nel giro' :
+    state.drawnIds.includes(d.id) ? 'Già estratto nella serie' : 'Disponibile';
   hero.style.setProperty('--deck-bg', deckGradient(d.colors));
   if(chosenArt(d)){$('heroArt').src=chosenArt(d); $('heroArt').classList.remove('hide')} else {$('heroArt').classList.add('hide'); $('heroArt').removeAttribute('src')}
 }
@@ -845,7 +883,9 @@ function renderDeckList(){
   if(!decks.length){list.innerHTML = `<div class="empty">Nessun mazzo da mostrare con i filtri attivi.</div>`;return}
   list.innerHTML = decks.map(d=>{
     const s = deckStats(d);
-    const tags = [d.bracket?`<span class="tag">Bracket ${escapeHtml(d.bracket)}</span>`:'', d.format?`<span class="tag">${escapeHtml(d.format)}</span>`:'', d.paused?`<span class="tag" style="color:var(--red)">In pausa</span>`:'', d.played?`<span class="tag" style="color:var(--gold)">Giocato</span>`:`<span class="tag" style="color:var(--green)">Disponibile</span>`].join('');
+    const tags = [d.bracket?`<span class="tag">Bracket ${escapeHtml(d.bracket)}</span>`:'', d.format?`<span class="tag">${escapeHtml(d.format)}</span>`:'', d.paused?`<span class="tag" style="color:var(--red)">In pausa</span>`:'', d.played?`<span class="tag" style="color:var(--gold)">Partita registrata</span>`:
+      state.drawnIds.includes(d.id)?`<span class="tag" style="color:var(--gold)">Già estratto</span>`:
+      `<span class="tag" style="color:var(--green)">Da estrarre</span>`].join('');
     return `<div class="deckCard ${d.played?'played':''} ${d.paused?'paused':''}">
       <img class="deckThumb" src="${escapeHtml(chosenArt(d))}" alt="" onerror="this.removeAttribute('src')">
       <div class="deckInfo">
@@ -995,9 +1035,19 @@ async function animateDraw(){
   if(drawingNow) return;
   if(!state.decks.length) return toast('Aggiungi prima almeno un mazzo.');
   if(!ensureRoundForDraw()) return toast('Nessun mazzo disponibile con i filtri attivi.');
-  const pool=drawPool();
-  if(!pool.length) return toast('Nessun mazzo disponibile con i filtri attivi.');
-  // Scegli il vincitore prima dell'animazione: ogni mazzo del pool ha la stessa probabilità.
+  let pool=unseenPool();
+  if(!pool.length){
+    const ds=drawStats();
+    // Non ricominciare automaticamente se i filtri nascondono mazzi ancora da estrarre.
+    if(ds.remaining>0){
+      return toast('I mazzi visibili sono già stati estratti. Cambia o togli i filtri per vedere quelli rimasti.');
+    }
+    if(ds.eligible===0)return toast('Nessun mazzo attivo ancora da giocare in questo giro.');
+    restartDrawSeries();
+    pool=unseenPool();
+    toast('Tutti i mazzi erano stati estratti: inizia una nuova serie!');
+  }
+  if(!pool.length) return toast('Nessun mazzo da pescare.');
   const selected=pool[Math.floor(Math.random()*pool.length)];
   drawingNow=true;
   $('drawBtn').disabled=true;
@@ -1007,6 +1057,7 @@ async function animateDraw(){
     else $('reelText').textContent=selected.name;
     state.selected=selected.id;
     state.selectedManually=false;
+    if(!state.drawnIds.includes(selected.id))state.drawnIds.push(selected.id);
     renderHero();
     $('hero').classList.remove('reveal'); void $('hero').offsetWidth; $('hero').classList.add('reveal');
     save();render();
@@ -1187,6 +1238,9 @@ function importData(file){
     },
     onSuccess(next){
       state = next;
+      if(!Array.isArray(state.drawnIds))state.drawnIds=[];
+      state.drawnIds=state.drawnIds.filter(id=>state.decks.some(d=>d.id===id));
+      state.drawSeries=Number.isInteger(state.drawSeries)&&state.drawSeries>0?state.drawSeries:1;
       render();
       toast('Backup importato correttamente, incluse le liste se presenti.');
       warmArchiveBackup();
@@ -1202,6 +1256,7 @@ $('winBtn').addEventListener('click', ()=>openRecord('win'));
 $('lossBtn').addEventListener('click', ()=>openRecord('loss'));
 $('recordConfirmBtn').addEventListener('click', registerResult);
 $('newRoundBtn').addEventListener('click', newRound);
+$('resetDrawBtn').addEventListener('click', resetDrawsManually);
 $('undoBtn').addEventListener('click', undoLast);
 $('historyMoreBtn').addEventListener('click', ()=>{historyVisibleCount += 60; renderHistory()});
 $('monthsYear').addEventListener('change', e=>{selectedMonthYear=Number(e.target.value); renderMonths()});
