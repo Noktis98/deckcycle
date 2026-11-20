@@ -8,6 +8,7 @@
   const store=()=>window.DeckCycleArchive;
   const ENDPOINT='./api/scrycheck';
   const CODE_KEY='deckcycle_scrycheck_access_session';
+  const DEVICE_CODE_KEY='deckcycle_scrycheck_personal_code_v1';
   const VECTORS=[
     ['velocity','Velocità'],['consistency','Consistenza'],
     ['interaction','Interazione'],['efficiency','Efficienza'],['lethality','Chiusura']
@@ -115,14 +116,47 @@
     if(!loading) setMessage(good?'Risultato salvato per questa lista. Puoi rileggerlo senza consumare una nuova analisi.':
       'La lista è cambiata: l’analisi precedente non rappresenta più il mazzo attuale.',!good);
   }
+  function storedCode(){
+    try{return localStorage.getItem(DEVICE_CODE_KEY)||''}catch(e){return ''}
+  }
+  function refreshRememberUI(){
+    const savedCode=storedCode();
+    $('scryForgetCodeBtn').disabled=!savedCode;
+    $('scryAccessCode').placeholder=savedCode ?
+      'Codice personale già salvato su questo dispositivo' :
+      'Codice personale configurato su Netlify';
+    $('scryRememberInfo').textContent=savedCode ?
+      'Codice salvato su questo dispositivo: non serve riscriverlo.' :
+      'Il codice verrà ricordato qui dopo una richiesta riuscita. Non viene incluso nei backup.';
+  }
   function getCode(){
-    let typed=$('scryAccessCode').value.trim();
-    if(typed) return typed;
+    const typed=$('scryAccessCode').value.trim();
+    if(typed)return typed;
+    const persistent=$('scryRememberCode').checked ? storedCode() : '';
+    if(persistent)return persistent;
     try{return sessionStorage.getItem(CODE_KEY)||''}catch(e){return ''}
   }
   function rememberCode(code){
-    // Solo per questa sessione; NON viene inserito nei mazzi né nei backup JSON.
+    // La vera chiave ScryCheck è sempre SOLO su Netlify.
+    // Questo è il codice personale secondario, salvato soltanto sul dispositivo
+    // quando l'utente ha autorizzato esplicitamente la memorizzazione.
     try{sessionStorage.setItem(CODE_KEY,code)}catch(e){}
+    if($('scryRememberCode').checked){
+      try{localStorage.setItem(DEVICE_CODE_KEY,code)}catch(e){
+        setMessage('Analisi completata. Il dispositivo non consente di ricordare il codice.',true);
+      }
+    }else{
+      try{localStorage.removeItem(DEVICE_CODE_KEY)}catch(e){}
+    }
+    refreshRememberUI();
+  }
+  function forgetCode(){
+    try{localStorage.removeItem(DEVICE_CODE_KEY)}catch(e){}
+    try{sessionStorage.removeItem(CODE_KEY)}catch(e){}
+    $('scryAccessCode').value='';
+    $('scryRememberCode').checked=false;
+    refreshRememberUI();
+    setMessage('Codice personale dimenticato su questo dispositivo. Potrai reinserirlo alla prossima analisi.');
   }
   async function callApi(method, body, code){
     const controller=new AbortController();
@@ -236,8 +270,18 @@
   function init(){
     $('scryAnalyzeBtn').addEventListener('click',()=>run(true));
     $('scryReloadBtn').addEventListener('click',()=>run(false));
-    $('scryAccessCode').addEventListener('change',()=>setMessage('Codice pronto. Rimane solo in questa sessione.',false));
-    try{if(sessionStorage.getItem(CODE_KEY))$('scryAccessCode').placeholder='Codice già salvato per questa sessione';}catch(e){}
+    $('scryAccessCode').addEventListener('change',()=>{
+      setMessage('Codice pronto. Verrà ricordato su questo dispositivo dopo una richiesta riuscita se la casella è selezionata.');
+    });
+    $('scryRememberCode').checked=!!storedCode();
+    $('scryRememberCode').addEventListener('change',()=>{
+      if(!$('scryRememberCode').checked && storedCode()){
+        try{localStorage.removeItem(DEVICE_CODE_KEY)}catch(e){}
+      }
+      refreshRememberUI();
+    });
+    $('scryForgetCodeBtn').addEventListener('click',forgetCode);
+    refreshRememberUI();
     render();
   }
   window.DeckCycleScryCheck={init,open,updated,close,hashList};
