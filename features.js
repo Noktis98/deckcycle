@@ -25,7 +25,10 @@
   }
   function artFor(deck) {
     if (!deck) return '';
-    return artCache.get(deck.id) || validImage(deck.image || '');
+    // I file personali sono nell'IndexedDB, mai nel campo image del mazzo.
+    // Finché la cache non è pronta non mostrare per errore la stampa originale.
+    if (deck.customArt) return artCache.get(deck.id) || '';
+    return validImage(deck.image || '');
   }
   function artStatus(message, error) {
     $('artStatus').textContent = message;
@@ -111,25 +114,45 @@
     const deckId = activeArtDeckId;
     const deck = app().getDeck(deckId);
     if (!deck) return;
+    const previous = {
+      image: deck.image, artist: deck.artist, customArt: deck.customArt,
+      artLocked: deck.artLocked, cached: artCache.get(deckId)
+    };
     try {
       if (!personal) {
-        await archive().removeArtwork(deckId);
+        // Una stampa/URL scelta manualmente deve essere utilizzata in ogni vista.
+        // La selezione remota resta possibile anche se IndexedDB non è disponibile.
+        await archive().removeArtwork(deckId).catch(error => {
+          console.warn('DeckCycle: impossibile rimuovere l\u2019immagine locale precedente:', error.message);
+        });
         artCache.delete(deckId);
         deck.customArt = false;
         deck.image = value;
         deck.artist = artist || '';
       } else {
-        // L'immagine base64 risiede in IndexedDB, non nel localStorage dei mazzi.
-        await archive().setArtwork(deckId, value, 'Artwork caricato dall’utente');
+        // L'immagine personale viene salvata in IndexedDB per non riempire localStorage.
+        await archive().setArtwork(deckId, value, 'Artwork caricato dall\u2019utente');
         artCache.set(deckId, value);
         deck.customArt = true;
         deck.artist = 'Artwork personale';
       }
+      // Blocca sia i refresh futuri sia le richieste Scryfall già in corso.
+      deck.artLocked = true;
       if (!app().save()) throw Error('Impossibile salvare la selezione.');
       app().render();
+      app().refreshDeckPreview?.(deckId);
       closeArt();
-      app().toast('Artwork aggiornato.');
-    } catch (error) { artStatus('Non riesco a salvare l’artwork: ' + error.message, true); }
+      app().toast('Artwork aggiornato in tutte le schermate.');
+    } catch (error) {
+      Object.assign(deck, {
+        image: previous.image, artist: previous.artist,
+        customArt: previous.customArt, artLocked: previous.artLocked
+      });
+      if (previous.cached) artCache.set(deckId, previous.cached);
+      else artCache.delete(deckId);
+      app().render();
+      artStatus('Non riesco a salvare l’artwork: ' + error.message, true);
+    }
   }
   function imageToDataUrl(file) {
     return new Promise((resolve, reject) => {
@@ -214,41 +237,72 @@
     const reel = $('reelText');
     const container = reel && reel.parentNode;
     if (!container) return Promise.resolve();
-    const reduced=window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if(reduced || pool.length<=1){reel.textContent=winner.name;return Promise.resolve()}
-    if(drawing)return Promise.resolve();
-    drawing=true;
-    const duration=2600;
-    const sequence=[];
-    for(let i=0;i<22;i++)sequence.push(pool[Math.floor(Math.random()*pool.length)]);
-    sequence.push(winner);
-    const rail=document.createElement('div');
-    rail.className='drawRail';
-    const viewport=document.createElement('div');
-    viewport.className='drawViewport';
-    sequence.forEach(item=>{
-      const card=document.createElement('div');card.className='drawMiniCard';
-      const image=artFor(item);
-      if(image){const img=document.createElement('img');img.src=image;img.alt='';card.appendChild(img)}
-      const txt=document.createElement('div');txt.textContent=item.name;card.appendChild(txt);
+    const reduced = window.matchMedia &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduced || pool.length <= 1) {
+      reel.textContent = winner.name;
+      return Promise.resolve();
+    }
+    if (drawing) return Promise.resolve();
+    drawing = true;
+    const duration = 2700;
+    const sequence = [];
+    for (let i = 0; i < 22; i++) {
+      sequence.push(pool[Math.floor(Math.random() * pool.length)]);
+    }
+    sequence.push(winner); // Il vincitore rimane quello estratto, non quello visualizzato per caso.
+
+    const rail = document.createElement('div');
+    rail.className = 'drawRail';
+    const viewport = document.createElement('div');
+    viewport.className = 'drawViewport';
+    // Inverti l'ordine visivo: mentre la colonna scende, i mazzi scorrono
+    // dall'alto verso il basso e l'ultimo visualizzato è il vincitore.
+    for (const item of sequence.slice().reverse()) {
+      const card = document.createElement('div');
+      card.className = 'drawMiniCard';
+      const image = artFor(item);
+      if (image) {
+        const img = document.createElement('img');
+        img.src = image;
+        img.alt = '';
+        card.appendChild(img);
+      }
+      const txt = document.createElement('div');
+      txt.textContent = item.name;
+      card.appendChild(txt);
       rail.appendChild(card);
-    });
+    }
     viewport.appendChild(rail);
     container.appendChild(viewport);
-    reel.style.visibility='hidden';
-    const total=(sequence.length-1)*138+69;
-    const target=Math.max(0,total-viewport.clientWidth/2);
-    return new Promise(resolve=>{
-      let done=false;
-      const finish=()=>{
-        if(done)return;done=true;viewport.remove();reel.style.visibility='';
-        reel.textContent=winner.name;drawing=false;resolve();
+    reel.style.visibility = 'hidden';
+
+    // La colonna parte con la prima carta estratta centrata e SCENDE
+    // fino alla carta vincitrice. Nessun movimento orizzontale.
+    const first = rail.firstElementChild;
+    const height = first?.getBoundingClientRect().height || 124;
+    const step = height + 8; // Il gap tra le carte è definito nel CSS.
+    const finalY = (viewport.clientHeight - height) / 2;
+    const initialY = finalY - (sequence.length - 1) * step;
+    rail.style.transform = 'translate3d(0, ' + initialY + 'px, 0)';
+
+    return new Promise(resolve => {
+      let done = false;
+      const finish = () => {
+        if (done) return;
+        done = true;
+        viewport.remove();
+        reel.style.visibility = '';
+        reel.textContent = winner.name;
+        drawing = false;
+        resolve();
       };
-      requestAnimationFrame(()=>requestAnimationFrame(()=>{
-        rail.style.transition='transform '+duration+'ms cubic-bezier(.12,.72,.14,1)';
-        rail.style.transform='translateX(-'+target+'px)';
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        rail.style.transition = 'transform ' + duration +
+          'ms cubic-bezier(.12,.72,.14,1)';
+        rail.style.transform = 'translate3d(0, ' + finalY + 'px, 0)';
       }));
-      setTimeout(finish,duration+140);
+      setTimeout(finish, duration + 160);
     });
   }
 
@@ -310,7 +364,6 @@
     const selected=state.decks.find(d=>d.id===currentChoice)||state.decks[0];
     if(!selected){$('analysisDetails').innerHTML='';return}
     selector.value=selected.id;analysisDeckId=selected.id;
-    window.DeckCycleScryCheck?.renderForDeck(selected);
     const key=selected.id;
     const gameLogs=state.history.filter(h=>h.deckId===key);
     const versions=new Map();
