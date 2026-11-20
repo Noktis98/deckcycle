@@ -1208,6 +1208,8 @@ async function animateDraw(){
     $('hero').classList.remove('reveal');
     void $('hero').offsetWidth;
     $('hero').classList.add('reveal');
+    // Dopo che la ruota si è fermata, porta il risultato superiore in vista.
+    $('hero').scrollIntoView?.({behavior:'smooth',block:'start'});
   }
 }
 function openRecord(result){
