@@ -49,10 +49,10 @@ function decodePalettePng(buffer){
     if(type==='IDAT')idat.push(body);
     if(type==='IEND')break;
   }
-  if(width!==180||height!==180||bitDepth!==8||colorType!==3||!palette)
+  if(width!==180||height!==180||![4,8].includes(bitDepth)||colorType!==3||!palette)
     throw Error('The master DeckCycle icon must be 180x180 indexed PNG');
   const packed=zlib.inflateSync(Buffer.concat(idat));
-  const stride=width;
+  const stride=Math.ceil(width*bitDepth/8);
   if(packed.length!==(stride+1)*height)throw Error('Unexpected PNG scanline size');
   const pixels=Buffer.alloc(width*height*3);
   let offset=0,prev=Buffer.alloc(stride);
@@ -65,7 +65,11 @@ function decodePalettePng(buffer){
       const predictor=[0,left,up,(left+up)>>>1,paeth(left,up,upperLeft)][filter];
       if(predictor===undefined)throw Error('Unsupported PNG filter '+filter);
       row[x]=(row[x]+predictor)&255;
-      const paletteOffset=row[x]*3;
+    }
+    for(let x=0;x<width;x++){
+      const paletteIndex=bitDepth===8 ? row[x] :
+        ((x&1) ? (row[x>>1]&15) : (row[x>>1]>>4));
+      const paletteOffset=paletteIndex*3;
       if(paletteOffset+2>=palette.length)throw Error('Palette index out of range');
       const pixel=(y*width+x)*3;
       pixels[pixel]=palette[paletteOffset];
