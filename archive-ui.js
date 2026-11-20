@@ -230,6 +230,7 @@
       const restored = await store.restoreVersion(deckId, revisionId);
       if (!deck || deck.id !== deckId) return;
       current = restored;
+      await window.DeckCycleScryCheck?.updated(restored);
       $('archivePaste').value = listAsText(restored);
       $('archiveVersionDiff').innerHTML = '';
       await renderVersions();
@@ -244,6 +245,7 @@
     if (!store || !deckRecord) return;
     deck = { id: deckRecord.id, name: deckRecord.name };
     current = null;
+    window.DeckCycleScryCheck?.close();
     cards = new Map();
     $('archiveTitle').textContent = 'Lista di ' + deck.name;
     $('archivePaste').value = '';
@@ -256,6 +258,7 @@
       const loaded = await store.loadDeck(deck.id);
       if (!deck || deck.id !== deckRecord.id) return;
       current = loaded;
+      await window.DeckCycleScryCheck?.open(deckRecord, loaded);
       $('archivePaste').value = loaded ? listAsText(loaded) : '';
       editor(!loaded);
       setStatus(loaded ?
@@ -290,6 +293,7 @@
       const next = await store.saveDeck(deckId, parsed.entries, $('archivePaste').value);
       if (!deck || deck.id !== deckId) return;
       current = next;
+      await window.DeckCycleScryCheck?.updated(next);
       editor(false);
       setStatus('Lista salvata in IndexedDB. ' + warningCount(parsed.total) +
         ' Utilizza Esporta per salvare anche una copia esterna completa.');
@@ -342,9 +346,13 @@
       $('archiveImagesBtn').textContent = imagesVisible ? 'Nascondi immagini' : 'Mostra immagini';
       await renderArchive();
     });
-    $('archiveCloseBtn').addEventListener('click', () => { deck = null; current = null; });
+    $('archiveCloseBtn').addEventListener('click', () => {
+      deck = null; current = null; window.DeckCycleScryCheck?.close();
+    });
     $('archiveModal').addEventListener('click', e => {
-      if (e.target === $('archiveModal')) { deck = null; current = null; }
+      if (e.target === $('archiveModal')) {
+        deck = null; current = null; window.DeckCycleScryCheck?.close();
+      }
     });
   }
 
