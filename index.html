@@ -931,6 +931,7 @@ function advanceRound(origin){
   state.pendingDrawId=null;
   state.selected = null;
   state.selectedManually = false;
+  $('reelText').textContent='🎲 Tocca qui per girare la ruota';
 }
 function maybeAdvanceRound(){
   const active = activeDecks();
@@ -1264,6 +1265,7 @@ function registerResult(){
   pendingResult = null;
   state.selected = null;
   state.selectedManually = false;
+  $('reelText').textContent='🎲 Tocca qui per girare la ruota';
   maybeAdvanceRound();
   save(); render();
 }
