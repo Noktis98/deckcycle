@@ -310,6 +310,7 @@
     const selected=state.decks.find(d=>d.id===currentChoice)||state.decks[0];
     if(!selected){$('analysisDetails').innerHTML='';return}
     selector.value=selected.id;analysisDeckId=selected.id;
+    window.DeckCycleScryCheck?.renderForDeck(selected);
     const key=selected.id;
     const gameLogs=state.history.filter(h=>h.deckId===key);
     const versions=new Map();
