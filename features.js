@@ -256,7 +256,9 @@
     rail.className = 'drawRail';
     const viewport = document.createElement('div');
     viewport.className = 'drawViewport';
-    for (const item of sequence) {
+    // Inverti l'ordine visivo: mentre la colonna scende, i mazzi scorrono
+    // dall'alto verso il basso e l'ultimo visualizzato è il vincitore.
+    for (const item of sequence.slice().reverse()) {
       const card = document.createElement('div');
       card.className = 'drawMiniCard';
       const image = artFor(item);
@@ -275,13 +277,13 @@
     container.appendChild(viewport);
     reel.style.visibility = 'hidden';
 
-    // Gli elementi sono in colonna: il loro centro passa dall'alto verso il basso
-    // nel viewport mentre la colonna si sposta verticalmente verso l'alto.
+    // La colonna parte con la prima carta estratta centrata e SCENDE
+    // fino alla carta vincitrice. Nessun movimento orizzontale.
     const first = rail.firstElementChild;
     const height = first?.getBoundingClientRect().height || 124;
     const step = height + 8; // Il gap tra le carte è definito nel CSS.
-    const initialY = (viewport.clientHeight - height) / 2;
-    const finalY = initialY - (sequence.length - 1) * step;
+    const finalY = (viewport.clientHeight - height) / 2;
+    const initialY = finalY - (sequence.length - 1) * step;
     rail.style.transform = 'translate3d(0, ' + initialY + 'px, 0)';
 
     return new Promise(resolve => {
