@@ -200,9 +200,55 @@
     await txResult(tx);
   }
 
+  // Analisi ScryCheck: un solo risultato persistente per mazzo, in IndexedDB.
+  // Nessuna chiave, codice di accesso o altro segreto viene memorizzato nel backup.
+  function validateScryCheck(item) {
+    if(!item || typeof item.deckId !== 'string' || !item.deckId ||
+      item.deckId.length > 250 || typeof item.signature !== 'string' ||
+      !/^v1:[a-f0-9]{8}:[0-9]{1,6}$/.test(item.signature) ||
+      typeof item.at !== 'string' || item.at.length > 60 ||
+      !item.data || typeof item.data !== 'object' || Array.isArray(item.data)) {
+      throw new Error('Analisi ScryCheck non valida nel backup.');
+    }
+    let json;
+    try {json=JSON.stringify(item.data);} catch(e){throw new Error('Dati ScryCheck non serializzabili.');}
+    if (!json || json.length > 22000 || !/^[a-f0-9]{16,64}$/i.test(item.data.deckHash || '')) {
+      throw new Error('Analisi ScryCheck troppo grande o priva di identificativo.');
+    }
+    const url = String(item.data.deckUrl || '');
+    if(!/^https:\/\/scrycheck\.com\/deck\/[a-f0-9]{16,64}(?:\/)?$/i.test(url)) {
+      throw new Error('URL analisi ScryCheck non valido.');
+    }
+    return { key: 'scrycheck:' + item.deckId, deckId:item.deckId,
+      signature:item.signature, at:item.at, data:JSON.parse(json) };
+  }
+  async function getScryCheckAnalysis(deckId) {
+    const db=await open();
+    return new Promise((resolve,reject)=>{
+      const tx=db.transaction('meta','readonly');
+      const req=tx.objectStore('meta').get('scrycheck:'+deckId);
+      req.onsuccess=()=>resolve(req.result || null);
+      req.onerror=()=>reject(req.error || new Error('Lettura analisi ScryCheck non riuscita.'));
+    });
+  }
+  async function saveScryCheckAnalysis(deckId,signature,data) {
+    const item=validateScryCheck({deckId,signature,at:new Date().toISOString(),data});
+    const db=await open();
+    const tx=db.transaction('meta','readwrite');
+    tx.objectStore('meta').put(item);
+    await txResult(tx);
+    if(exportSnapshot) {
+      const arr=exportSnapshot.scrycheck||(exportSnapshot.scrycheck=[]);
+      const i=arr.findIndex(x=>x.deckId===deckId);
+      if(i===-1) arr.push(item);
+      else arr[i]=item;
+    }
+    return item;
+  }
+
   async function exportAll() {
-    const [lists, artworks, revisions, roles] = await Promise.all([
-      getAll('lists'), getAll('artworks'), getAll('revisions'), getAll('roles')
+    const [lists, artworks, revisions, roles, metas] = await Promise.all([
+      getAll('lists'), getAll('artworks'), getAll('revisions'), getAll('roles'), getAll('meta')
     ]);
     // Evita backup illimitati: mantenere solo le ultime 12 versioni per mazzo.
     const byDeck = new Map();
@@ -216,11 +262,13 @@
       byDeck.set(item.deckId, arr);
     });
     return {
-      schemaVersion: 2,
+      schemaVersion: 3,
       lists: lists.map(asList),
       artworks: artworks.map(validateArtwork),
       revisions: Array.from(byDeck.values()).flat(),
-      roles: roles.map(validateRole)
+      roles: roles.map(validateRole),
+      scrycheck: metas.filter(item=>item && typeof item.key === 'string' &&
+        item.key.startsWith('scrycheck:')).map(validateScryCheck)
     };
   }
 
@@ -243,6 +291,7 @@
       })),
       artworks: (exportSnapshot.artworks || []).map(item => ({...item})),
       roles: (exportSnapshot.roles || []).map(item => ({...item, categories:[...item.categories]})),
+      scrycheck: (exportSnapshot.scrycheck || []).map(item => ({...item, data:JSON.parse(JSON.stringify(item.data))})),
       revisions: (exportSnapshot.revisions || []).map(item => ({
         ...item, snapshot: {...item.snapshot, entries: item.snapshot.entries.map(entry => ({...entry}))}
       }))
@@ -306,8 +355,8 @@
   }
 
   function validateBackupArchive(archive) {
-    if (archive == null) return { schemaVersion: 1, lists: [], artworks: [], revisions: [], roles: [] };
-    if (!archive || ![1,2].includes(archive.schemaVersion) ||
+    if (archive == null) return { schemaVersion: 1, lists: [], artworks: [], revisions: [], roles: [], scrycheck: [] };
+    if (!archive || ![1,2,3].includes(archive.schemaVersion) ||
         !Array.isArray(archive.lists) || archive.lists.length > 2000) {
       throw new Error('Formato delle liste nel backup non riconosciuto.');
     }
@@ -321,9 +370,11 @@
     const arts = archive.artworks || [];
     const versions = archive.revisions || [];
     const manualRoles = archive.roles || [];
+    const scryResults = archive.scrycheck || [];
     if (!Array.isArray(arts) || arts.length > 80 ||
         !Array.isArray(versions) || versions.length > 3000 ||
-        !Array.isArray(manualRoles) || manualRoles.length > 4000) {
+        !Array.isArray(manualRoles) || manualRoles.length > 4000 ||
+        !Array.isArray(scryResults) || scryResults.length > 2000) {
       throw new Error('Troppe immagini o versioni nel backup.');
     }
     const artworkIds = new Set();
@@ -340,16 +391,20 @@
         reason: String(item.reason || '').slice(0, 150), snapshot: asList(item.snapshot) };
     });
     const roles=manualRoles.map(validateRole);
-    return { schemaVersion: archive.schemaVersion, lists, artworks, revisions, roles };
+    const scrycheck=scryResults.map(validateScryCheck);
+    if(new Set(scrycheck.map(x=>x.deckId)).size!==scrycheck.length) {
+      throw new Error('Analisi ScryCheck duplicate nel backup.');
+    }
+    return { schemaVersion: archive.schemaVersion, lists, artworks, revisions, roles, scrycheck };
   }
 
   async function importAll(archive) {
     const validated = validateBackupArchive(archive);
-    const { lists, artworks, revisions, roles } = validated;
-    if (!lists.length && !artworks.length && !revisions.length && !roles.length) return 0;
+    const { lists, artworks, revisions, roles, scrycheck } = validated;
+    if (!lists.length && !artworks.length && !revisions.length && !roles.length && !scrycheck.length) return 0;
     // Un'unica transazione IndexedDB atomica: nessun import parziale.
     const db = await open();
-    const tx = db.transaction(['lists', 'revisions', 'artworks', 'roles'], 'readwrite');
+    const tx = db.transaction(['lists', 'revisions', 'artworks', 'roles', 'meta'], 'readwrite');
     const listStore = tx.objectStore('lists');
     lists.forEach(item => {
       const req = listStore.get(item.deckId);
@@ -363,6 +418,7 @@
     artworks.forEach(item => tx.objectStore('artworks').put(item));
     revisions.forEach(item => tx.objectStore('revisions').add(item));
     roles.forEach(item => tx.objectStore('roles').put(item));
+    scrycheck.forEach(item => tx.objectStore('meta').put(item));
     await txResult(tx);
     if (exportSnapshot) {
       lists.forEach(item => {
@@ -379,7 +435,13 @@
         const i=(exportSnapshot.roles||[]).findIndex(saved=>saved.id===item.id);
         if(i<0)exportSnapshot.roles.push(item);else exportSnapshot.roles[i]=item;
       });
-      exportSnapshot.revisions = null;
+      scrycheck.forEach(item => {
+        const arr=exportSnapshot.scrycheck||(exportSnapshot.scrycheck=[]);
+        const i=arr.findIndex(x=>x.deckId===item.deckId);
+        if(i<0)arr.push(item);else arr[i]=item;
+      });
+      // Manteniamo una lista valida mentre la foto di backup si rigenera.
+      exportSnapshot.revisions = [];
       warmExport().catch(() => {});
     }
     return lists.length;
@@ -577,6 +639,7 @@
     open, parseDecklist, saveBaseline, loadDeck, saveDeck, exportAll, warmExport, readyExport,
     validateBackupArchive, importAll, cachedCards, fetchScryfall, summarize, category, keyOf,
     listRevisions, labelVersion, restoreVersion, loadArtwork, setArtwork, removeArtwork,
-    getRoleOverrides, setRoleOverride, clearRoleOverride
+    getRoleOverrides, setRoleOverride, clearRoleOverride,
+    getScryCheckAnalysis, saveScryCheckAnalysis
   };
 })();
