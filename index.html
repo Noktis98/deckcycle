@@ -258,12 +258,13 @@ body.deckcycle-tabs .stack:empty{display:none}
 .opponentRow .field{min-width:0;padding:9px 8px;font-size:12px}
 .opponentArt{width:38px;height:47px;object-fit:cover;border-radius:7px;background:var(--panel3)}
 .opponentRow .pillBtn{padding:8px 5px;min-height:38px}
-.drawViewport{position:absolute;inset:0;overflow:hidden;display:flex;align-items:center;pointer-events:none}
-.reelWrap{position:relative;overflow:hidden}
-.drawRail{display:flex;gap:8px;align-items:center;width:max-content;will-change:transform}
-.drawMiniCard{width:130px;min-width:130px;height:130px;border:1px solid var(--gold2);background:var(--panel3);color:var(--text);border-radius:13px;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between;box-shadow:0 8px 19px rgba(0,0,0,.35)}
-.drawMiniCard img{width:100%;height:97px;object-fit:cover}
-.drawMiniCard div{padding:5px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:10px;font-weight:800}
+.drawViewport{position:absolute;inset:0;overflow:hidden;display:flex;align-items:flex-start;justify-content:center;pointer-events:none}
+.reelWrap{position:relative;overflow:hidden;min-height:152px;height:152px}
+.drawRail{display:flex;flex-direction:column;gap:8px;align-items:stretch;width:min(100%,420px);will-change:transform}
+.drawMiniCard{width:100%;height:124px;min-height:124px;flex:0 0 124px;display:grid;grid-template-columns:106px minmax(0,1fr);align-items:center;border:1px solid var(--gold2);background:var(--panel3);color:var(--text);border-radius:13px;overflow:hidden;box-shadow:0 8px 19px rgba(0,0,0,.35)}
+.drawMiniCard img{width:106px;height:124px;object-fit:cover;object-position:top}
+.drawMiniCard div{padding:10px 14px;min-width:0;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;font-size:15px;line-height:1.25;font-weight:800}
+@media(max-width:560px){.drawRail{width:100%}.drawMiniCard{grid-template-columns:84px minmax(0,1fr)}.drawMiniCard img{width:84px}}
 .archiveVersions{padding:12px;border:1px solid var(--line);background:var(--panel2);border-radius:15px;margin:15px 0}
 .archiveDiffColumns{display:grid;grid-template-columns:1fr 1fr;gap:14px;font-size:12px;margin-top:9px}
 .archiveDiffColumns li{margin-bottom:6px;overflow-wrap:anywhere}
@@ -280,24 +281,6 @@ body.deckcycle-tabs .stack:empty{display:none}
 @media(max-width:560px){.analysisSummary{grid-template-columns:repeat(2,minmax(0,1fr))}.analysisBreakdown{grid-template-columns:repeat(3,1fr)}.archiveDiffColumns{grid-template-columns:1fr}.opponentRow{grid-template-columns:34px 1fr 1fr 34px 34px;gap:4px}.opponentRow .pillBtn{font-size:11px;padding:5px 0}.opponentRow .field{font-size:11px;padding:8px 5px}}
 @media(prefers-reduced-motion:reduce){.drawRail{transition:none !important}.deckBottomNav button{transition:none}}
 
-
-/* ScryCheck — official analysis block, no API credentials in browser */
-.scrycheckPanel{margin-top:18px;padding:16px;border:1px solid var(--line);border-radius:16px;background:var(--panel2)}
-.scrycheckPanel .sectionSub{line-height:1.5}
-.scrycheckControls{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:14px 0}
-.scrycheckControls select{width:auto;max-width:260px;min-height:40px}
-.scrycheckResult{margin-top:15px}
-.scrycheckMetrics{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin:10px 0}
-.scrycheckMetrics>div{border:1px solid var(--line);border-radius:13px;background:var(--panel);padding:13px 8px;text-align:center;display:flex;flex-direction:column;gap:3px}
-.scrycheckMetrics b{color:var(--gold);font-size:clamp(19px,3vw,30px);line-height:1.2}
-.scrycheckMetrics span{color:var(--muted);font-size:11px}
-.scrycheckVector{display:grid;grid-template-columns:minmax(85px,1fr) 3fr 34px;gap:9px;align-items:center;font-size:12px;padding:5px 0}
-.scrycheckTrack{height:9px;background:var(--panel3);border-radius:99px;overflow:hidden}
-.scrycheckTrack>div{height:100%;background:linear-gradient(90deg,var(--gold2),var(--gold));border-radius:99px}
-.scrycheckFooter{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center;font-size:12px;margin-top:14px}
-.scrycheckFooter a{color:var(--gold)}
-.scrycheckWarn{color:var(--red);font-weight:650;font-size:12px}
-@media(max-width:560px){.scrycheckMetrics{gap:5px}.scrycheckPanel{padding:11px}.scrycheckVector{grid-template-columns:90px minmax(80px,1fr) 25px;gap:5px}}
 </style>
 </head>
 <body>
@@ -472,29 +455,6 @@ body.deckcycle-tabs .stack:empty{display:none}
         <div class="row" style="margin:14px 0"><label for="analysisSelect" class="sectionSub">Mazzo da analizzare</label>
           <select id="analysisSelect" style="width:auto;max-width:280px"></select></div>
         <div id="analysisDetails"></div>
-
-        <section id="scrycheckPanel" class="scrycheckPanel" aria-labelledby="scrycheckHeading">
-          <div class="sectionTitle" id="scrycheckHeading">🔮 Analisi ufficiale ScryCheck</div>
-          <p class="sectionSub">Power Level, bracket e velocità di vittoria direttamente da ScryCheck.
-            Le valutazioni sono stime indipendenti, non classificazioni ufficiali Wizards.</p>
-          <div class="scrycheckControls">
-            <label for="scrycheckSource" class="sectionSub">Fonte</label>
-            <select id="scrycheckSource" aria-label="Fonte analisi ScryCheck">
-              <option value="auto">Automatica: preferisci la lista DeckCycle</option>
-              <option value="local">Lista salvata in DeckCycle</option>
-              <option value="url">Link Moxfield/Archidekt</option>
-            </select>
-            <button type="button" class="primary" id="scrycheckAnalyzeBtn">✨ Analizza con ScryCheck</button>
-            <button type="button" class="pillBtn" id="scrycheckSavedBtn">Recupera analisi salvata</button>
-          </div>
-          <p class="note">⚠️ <strong>Privacy:</strong> ogni nuova analisi e la relativa lista diventano pubbliche su ScryCheck.
-            Una conferma sarà richiesta prima di inviarle. L’analisi salvata si può rileggere senza consumare
-            la quota giornaliera. La chiave API resta riservata su Netlify;
-            per utilizzare il servizio serve un codice personale separato.</p>
-          <p class="archiveStatus" role="status" aria-live="polite" id="scrycheckStatus"></p>
-          <div class="scrycheckResult" id="scrycheckResult"></div>
-        </section>
-
       </section>
       <section class="card section reveal" data-tab="settings">
         <div class="sectionTitle">Impostazioni e protezione dati</div>
@@ -744,10 +704,8 @@ function normalizeDeck(d){
     moxfield: typeof d.moxfield === 'string' ? d.moxfield : '',
     image: typeof d.image === 'string' ? d.image : '',
     artist: d.artist || '',
-    scrycheck: d.scrycheck && typeof d.scrycheck === 'object' &&
-      Array.isArray(d.scrycheck.reports) ?
-      {reports:d.scrycheck.reports.slice(0,20)} : {reports:[]},
     customArt: !!d.customArt,
+    artLocked: !!d.artLocked,
     versionTag: typeof d.versionTag === 'string' ? d.versionTag : '',
     played: !!d.played,
     paused: !!d.paused
@@ -767,7 +725,11 @@ function toast(msg){
 }
 function applyTheme(){document.documentElement.dataset.theme = state.theme; $('theme').value = state.theme}
 function getDeck(id){return state.decks.find(d=>d.id===id)}
-function chosenArt(deck){return window.DeckCycleExtras?.artFor(deck) || (deck && deck.image) || ''}
+function chosenArt(deck){
+  if(!deck) return '';
+  if(window.DeckCycleExtras) return window.DeckCycleExtras.artFor(deck);
+  return deck.customArt ? '' : (deck.image || '');
+}
 function deckStats(deck){
   const list = state.history.filter(h => h.deckId === deck.id);
   const wins = list.filter(h => h.result === 'win').length;
@@ -978,21 +940,32 @@ function closeModal(id){$(id).classList.remove('open')}
 
 async function fetchCommanderArt(deck, notify=false){
   const query = encodeURIComponent(deck.commander || deck.name);
-  if(deck.customArt && !notify) return;
+  // Una stampa scelta manualmente deve rimanere selezionata, anche se
+  // era già in corso una richiesta automatica a Scryfall.
+  if(!notify && (deck.artLocked || deck.customArt)) return;
   try{
     const res = await fetch(`https://api.scryfall.com/cards/named?fuzzy=${query}`, {headers:{accept:'application/json'}});
     if(!res.ok) throw new Error('not-found');
     const card = await res.json();
+    if(!notify && (deck.artLocked || deck.customArt)) return;
     const face = card.card_faces?.[0];
-    deck.image = card.image_uris?.art_crop || face?.image_uris?.art_crop || card.image_uris?.normal || face?.image_uris?.normal || '';
-    deck.artist = card.artist || face?.artist || '';
-    if(notify && deck.customArt){
-      deck.customArt=false;
-      window.DeckCycleExtras?.artCache.delete(deck.id);
-      window.DeckCycleArchive.removeArtwork(deck.id).catch(()=>{});
+    const image = card.image_uris?.art_crop || face?.image_uris?.art_crop ||
+      card.image_uris?.normal || face?.image_uris?.normal || '';
+    if(notify){
+      if(deck.customArt){
+        window.DeckCycleExtras?.artCache.delete(deck.id);
+        window.DeckCycleArchive.removeArtwork(deck.id).catch(error =>
+          console.warn('DeckCycle: pulizia vecchio artwork non riuscita:',error.message));
+      }
+      deck.customArt = false;
+      deck.artLocked = false;
     }
+    deck.image = image;
+    deck.artist = card.artist || face?.artist || '';
     if(!deck.colors) deck.colors = normalizeColors((card.color_identity||[]).join(''));
-    save(); render(); if(notify) toast('Artwork aggiornato da Scryfall.');
+    save(); render();
+    if(editId === deck.id) renderEditPreview(deck);
+    if(notify) toast('Artwork aggiornato da Scryfall.');
   }catch(err){ if(notify) toast('Non sono riuscito a recuperare l’artwork da Scryfall.'); }
 }
 function addDeckFromForm(e){
@@ -1104,7 +1077,9 @@ function renderEditPreview(d){
   $('editPreviewName').textContent = d.name;
   $('editPreviewTags').innerHTML = `${manaIcons(d.colors)}<span class="tag">${d.format || 'Commander'}</span><span class="tag">Bracket ${d.bracket || '—'}</span><span class="tag">${d.paused ? 'In pausa' : 'Attivo'}</span>`;
   const s = deckStats(d); $('editStats').textContent = `${s.games} partite · ${s.wins} vittorie · ${s.losses} sconfitte · ${s.games ? s.rate+'% win rate' : 'nessun risultato'}`;
-  $('editArtist').textContent = d.artist ? `Artista: ${d.artist} · © Wizards of the Coast` : '';
+  $('editArtist').textContent = d.artist ?
+    (d.customArt || d.artist === 'Artwork da URL' ?
+      `Artwork: ${d.artist}` : `Artista: ${d.artist}`) : '';
   $('togglePauseBtn').textContent = d.paused ? 'Riattiva' : 'Metti in pausa';
   $('editMoxfieldLink').classList.toggle('hide', !/^https?:\/\//i.test(d.moxfield));
   $('editMoxfieldLink').href = d.moxfield || '#';
@@ -1284,6 +1259,12 @@ window.DeckCycleApp={
   getDeck,
   getEditingDeckId:()=>editId,
   save,render,toast,
+  refreshDeckPreview(deckId){
+    if(editId === deckId){
+      const deck=getDeck(deckId);
+      if(deck) renderEditPreview(deck);
+    }
+  },
   onListSaved(deckId,at){
     const deck=getDeck(deckId);
     if(!deck)return;
@@ -1295,7 +1276,6 @@ window.DeckCycleApp={
 })();
 </script>
 <script src="./features.js"></script>
-<script src="./scrycheck.js"></script>
 <script src="./pwa.js"></script>
 </body>
 </html>
