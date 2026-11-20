@@ -179,59 +179,329 @@
     });
   }
 
-  function addOpponentRow(name, commander, image) {
-    if (opponentRows >= 5) return;
+
+  // Rubrica avversari, separata dallo storico: nuovi giocatori e mazzi
+  // vengono ricordati dopo aver confermato il risultato della partita.
+  const AVATAR_ID = '__deckcycle_profile_avatar';
+  function roster(){
+    const state=app().getState();
+    if(!Array.isArray(state.opponentGroups))state.opponentGroups=[];
+    if(!Array.isArray(state.opponents))state.opponents=[];
+    state.opponentGroups=state.opponentGroups.filter(g=>g && typeof g.id==='string'&&g.id &&
+      typeof g.name==='string'&&g.name.trim()).slice(0,40)
+      .map(g=>({id:g.id.slice(0,80),name:g.name.trim().slice(0,70)}));
+    state.opponents=state.opponents.filter(p=>p && typeof p.id==='string'&&p.id &&
+      typeof p.name==='string'&&p.name.trim()).slice(0,150)
+      .map(p=>({
+        id:p.id.slice(0,80),name:p.name.trim().slice(0,120),
+        groupId:state.opponentGroups.some(g=>g.id===p.groupId)?p.groupId:'',
+        decks:(Array.isArray(p.decks)?p.decks:[]).slice(0,20).map(d=>
+          typeof d==='string'?{commander:d.slice(0,220),image:''}:{
+            commander:String(d?.commander||'').trim().slice(0,220),
+            image:validImage(d?.image||'')
+          }).filter(d=>d.commander)
+      }));
+    return state;
+  }
+  function rosterId(){
+    return 'op'+Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-5);
+  }
+  function same(a,b){return String(a||'').trim().toLocaleLowerCase('it')===String(b||'').trim().toLocaleLowerCase('it')}
+  function groupOptions(selected,emptyLabel){
+    const data=roster();
+    return '<option value="">'+clean(emptyLabel||'Senza gruppo')+'</option>'+
+      data.opponentGroups.map(g=>'<option value="'+clean(g.id)+'"'+
+      (selected===g.id?' selected':'')+'>'+clean(g.name)+'</option>').join('');
+  }
+  function renderRoster(){
+    const data=roster();
+    const formGroup=$('rosterNewGroup')?.value||'',matchGroup=$('recordGroupSelect')?.value||'';
+    $('rosterNewGroup').innerHTML=groupOptions(formGroup,'Senza gruppo');
+    $('recordGroupSelect').innerHTML=groupOptions(matchGroup,'Seleziona gruppo…');
+    $('rosterGroups').innerHTML=data.opponentGroups.length?
+      data.opponentGroups.map(g=>'<div class="rosterGroupItem"><b>'+clean(g.name)+'</b>'+
+        '<button type="button" data-roster-group-edit="'+clean(g.id)+'" title="Rinomina gruppo">✏️</button>'+
+        '<button type="button" data-roster-group-remove="'+clean(g.id)+'" title="Elimina gruppo">✕</button></div>').join(''):
+      '<span class="note">Nessun gruppo. Puoi comunque salvare giocatori senza gruppo.</span>';
+    $('rosterPlayers').innerHTML=data.opponents.length?
+      data.opponents.map(p=>{
+        const decks=p.decks.map((d,i)=>'<div class="rosterDeckRow">'+
+          '<input class="field rosterDeckInput" maxlength="220" value="'+clean(d.commander)+
+          '" aria-label="Mazzo del giocatore">'+
+          '<button type="button" class="miniBtn" data-roster-action="remove-deck" data-deck-index="'+i+
+          '" title="Rimuovi questo mazzo">✕</button></div>').join('');
+        return '<div class="rosterPlayer" data-roster-player="'+clean(p.id)+'">'+
+          '<div class="rosterPlayerFields"><input class="field rosterNameInput" maxlength="120" value="'+clean(p.name)+
+          '" aria-label="Nome giocatore">'+
+          '<select class="rosterGroupInput" aria-label="Gruppo">'+groupOptions(p.groupId,'Senza gruppo')+'</select></div>'+
+          '<div class="archiveHeading">Mazzi abituali</div><div class="rosterDeckList">'+(decks||
+          '<p class="note">Nessun mazzo salvato.</p>')+'</div>'+
+          '<div class="rosterPlayerActions"><button type="button" class="miniBtn" data-roster-action="add-deck">+ Mazzo</button>'+
+          '<button type="button" class="pillBtn" data-roster-action="save-player">Salva modifiche</button>'+
+          '<button type="button" class="miniBtn" data-roster-action="delete-player">Elimina giocatore</button></div></div>';
+      }).join(''):'<p class="note">Non hai ancora salvato avversari. Puoi aggiungerli qui o durante una partita.</p>';
+  }
+  function persistRoster(){if(!app().save())return app().toast('Non è stato possibile salvare la rubrica.');renderRoster();}
+  function addGroup(){
+    const data=roster(),name=$('rosterGroupName').value.trim().slice(0,70);
+    if(!name)return app().toast('Scrivi un nome per il gruppo.');
+    if(data.opponentGroups.length>=40)return app().toast('Limite di 40 gruppi raggiunto.');
+    if(data.opponentGroups.some(g=>same(g.name,name)))return app().toast('Questo gruppo esiste già.');
+    data.opponentGroups.push({id:rosterId(),name});
+    $('rosterGroupName').value='';persistRoster();
+  }
+  function addRosterPlayer(){
+    const data=roster(),name=$('rosterNewName').value.trim().slice(0,120);
+    const groupId=$('rosterNewGroup').value;
+    const commander=$('rosterNewDeck').value.trim().slice(0,220);
+    if(!name)return app().toast('Inserisci il nome del giocatore.');
+    let p=data.opponents.find(p=>same(p.name,name));
+    if(!p){
+      if(data.opponents.length>=150)return app().toast('Limite di 150 giocatori raggiunto.');
+      p={id:rosterId(),name,groupId,decks:[]};data.opponents.push(p);
+    }else if(groupId){p.groupId=groupId}
+    if(commander&&!p.decks.some(x=>same(x.commander,commander))&&p.decks.length<20)
+      p.decks.push({commander,image:''});
+    $('rosterNewName').value='';$('rosterNewDeck').value='';persistRoster();
+    app().toast('Giocatore salvato nella rubrica.');
+  }
+  function rosterAction(e){
+    const groupEdit=e.target.closest('[data-roster-group-edit]');
+    const groupRemove=e.target.closest('[data-roster-group-remove]');
+    const state=roster();
+    if(groupEdit){
+      const g=state.opponentGroups.find(x=>x.id===groupEdit.dataset.rosterGroupEdit);
+      if(!g)return;
+      const name=prompt('Nuovo nome del gruppo',g.name);
+      if(name===null)return;
+      const val=name.trim().slice(0,70);
+      if(!val)return app().toast('Il nome del gruppo non può essere vuoto.');
+      if(state.opponentGroups.some(x=>x.id!==g.id&&same(x.name,val)))return app().toast('Il gruppo esiste già.');
+      g.name=val;persistRoster();return;
+    }
+    if(groupRemove){
+      const id=groupRemove.dataset.rosterGroupRemove;
+      if(!confirm('Eliminare il gruppo? I giocatori rimarranno salvati senza gruppo.'))return;
+      state.opponentGroups=state.opponentGroups.filter(g=>g.id!==id);
+      state.opponents.forEach(p=>{if(p.groupId===id)p.groupId=''});
+      persistRoster();return;
+    }
+    const button=e.target.closest('[data-roster-action]');
+    if(!button)return;
+    const box=button.closest('[data-roster-player]');
+    const p=state.opponents.find(p=>p.id===box?.dataset.rosterPlayer);
+    if(!box||!p)return;
+    const action=button.dataset.rosterAction;
+    if(action==='delete-player'){
+      if(!confirm('Eliminare '+p.name+' dalla rubrica? Le partite registrate resteranno nello storico.'))return;
+      state.opponents=state.opponents.filter(x=>x.id!==p.id);
+      persistRoster();return;
+    }
+    if(action==='remove-deck'){
+      button.closest('.rosterDeckRow')?.remove();return;
+    }
+    if(action==='add-deck'){
+      const wrapper=box.querySelector('.rosterDeckList');
+      const empty=wrapper.querySelector('.note');if(empty)empty.remove();
+      const row=document.createElement('div');row.className='rosterDeckRow';
+      row.innerHTML='<input class="field rosterDeckInput" maxlength="220" placeholder="Nome comandante o mazzo" aria-label="Mazzo del giocatore">'+
+        '<button class="miniBtn" type="button" data-roster-action="remove-deck" title="Rimuovi">✕</button>';
+      wrapper.appendChild(row);row.querySelector('input').focus();return;
+    }
+    if(action==='save-player'){
+      const name=box.querySelector('.rosterNameInput').value.trim().slice(0,120);
+      if(!name)return app().toast('Inserisci un nome.');
+      if(state.opponents.some(x=>x.id!==p.id && same(x.name,name)))return app().toast('Un altro giocatore ha già questo nome.');
+      p.name=name;
+      p.groupId=box.querySelector('.rosterGroupInput').value;
+      const newDecks=[];
+      for(const input of box.querySelectorAll('.rosterDeckInput')){
+        const commander=input.value.trim().slice(0,220);
+        if(!commander||newDecks.some(d=>same(d.commander,commander)))continue;
+        const old=p.decks.find(d=>same(d.commander,commander));
+        newDecks.push({commander,image:old?.image||''});
+        if(newDecks.length>=20)break;
+      }
+      p.decks=newDecks;persistRoster();app().toast('Modifiche salvate.');
+    }
+  }
+
+  function playerOptions(selectedId){
+    const people=roster().opponents.slice().sort((a,b)=>a.name.localeCompare(b.name,'it'));
+    return '<option value="">Scegli giocatore salvato…</option>'+
+      people.map(p=>'<option value="'+clean(p.id)+'"'+(p.id===selectedId?' selected':'')+
+        '>'+clean(p.name)+'</option>').join('');
+  }
+  function updateDeckChoice(row,p,preferred){
+    const select=row.querySelector('.opponentSavedDeck');
+    const decks=p?.decks||[];
+    select.innerHTML='<option value="">'+(decks.length?'Scegli mazzo abituale…':'Nessun mazzo salvato')+'</option>'+
+      decks.map((d,i)=>'<option value="'+i+'">'+clean(d.commander)+'</option>').join('');
+    if(preferred) {
+      const i=decks.findIndex(d=>same(d.commander,preferred));
+      if(i>=0)select.value=String(i);
+    }else if(decks.length===1){select.value='0'}
+    select.disabled=!decks.length;
+  }
+  function applySavedDeck(row,p){
+    const index=Number(row.querySelector('.opponentSavedDeck').value);
+    const saved=p?.decks?.[index];
+    if(!saved)return;
+    row.querySelector('.opponentCommander').value=saved.commander;
+    row.dataset.art=validImage(saved.image||'');
+    const img=row.querySelector('.opponentArt');
+    if(row.dataset.art)img.src=row.dataset.art;else img.removeAttribute('src');
+  }
+  function addOpponentRow(name='',commander='',image='',playerId=''){
+    if(opponentRows>=5)return;
     opponentRows++;
-    const row = document.createElement('div');
-    row.className = 'opponentRow';
-    row.innerHTML = '<img class="opponentArt" alt="" ' + (validImage(image) ?
-      'src="' + clean(validImage(image)) + '"' : '') + '>' +
-      '<input class="field opponentName" placeholder="Nome avversario" aria-label="Nome avversario">' +
-      '<input class="field opponentCommander" placeholder="Comandante" aria-label="Comandante avversario">' +
-      '<button class="pillBtn opponentSearch" type="button" title="Cerca su Scryfall">🔎</button>' +
+    const row=document.createElement('div');
+    row.className='opponentRow';
+    row.innerHTML='<div class="opponentPresetBar">'+
+      '<select class="opponentSavedPlayer" aria-label="Scegli giocatore salvato">'+playerOptions(playerId)+'</select>'+
+      '<select class="opponentSavedDeck" aria-label="Scegli mazzo abituale"><option value="">Scegli mazzo…</option></select></div>'+
+      '<img class="opponentArt" alt="" '+(validImage(image)?'src="'+clean(validImage(image))+'"':'')+'>'+
+      '<input class="field opponentName" maxlength="120" placeholder="Nome avversario" aria-label="Nome avversario">'+
+      '<input class="field opponentCommander" maxlength="220" placeholder="Comandante" aria-label="Comandante avversario">'+
+      '<button class="pillBtn opponentSearch" type="button" title="Cerca su Scryfall">🔎</button>'+
       '<button class="pillBtn opponentRemove" type="button" title="Rimuovi avversario">✕</button>';
-    row.querySelector('.opponentName').value = name || '';
-    row.querySelector('.opponentCommander').value = commander || '';
-    row.querySelector('.opponentCommander').addEventListener('input', () => {row.dataset.art = ''});
-    row.dataset.art = validImage(image || '');
+    const p=roster().opponents.find(x=>x.id===playerId)||roster().opponents.find(x=>same(x.name,name));
+    row.dataset.playerId=p?.id||'';
+    row.querySelector('.opponentName').value=name||p?.name||'';
+    row.querySelector('.opponentCommander').value=commander||'';
+    row.dataset.art=validImage(image||'');
+    updateDeckChoice(row,p,commander);
+    if(!commander&&p)applySavedDeck(row,p);
     $('opponentTable').appendChild(row);
-    row.querySelector('.opponentRemove').addEventListener('click', () => {
-      row.remove();opponentRows--; updateOpponentCount();
+    row.querySelector('.opponentSavedPlayer').addEventListener('change',()=>{
+      const picked=roster().opponents.find(x=>x.id===row.querySelector('.opponentSavedPlayer').value);
+      row.dataset.playerId=picked?.id||'';
+      row.querySelector('.opponentName').value=picked?.name||'';
+      row.querySelector('.opponentCommander').value='';
+      row.dataset.art='';row.querySelector('img').removeAttribute('src');
+      updateDeckChoice(row,picked);
+      if(picked?.decks.length===1)applySavedDeck(row,picked);
     });
-    row.querySelector('.opponentSearch').addEventListener('click', async () => {
-      const input = row.querySelector('.opponentCommander');
-      const name = input.value.trim();if(!name)return;
-      const button=row.querySelector('.opponentSearch');button.disabled=true;button.textContent='…';
-      try {
-        const response=await fetch('https://api.scryfall.com/cards/named?fuzzy='+encodeURIComponent(name));
-        if (!response.ok)throw Error('Comandante non trovato.');
+    row.querySelector('.opponentSavedDeck').addEventListener('change',()=>{
+      const picked=roster().opponents.find(x=>x.id===row.dataset.playerId);
+      applySavedDeck(row,picked);
+    });
+    row.querySelector('.opponentName').addEventListener('input',()=>{
+      const picked=roster().opponents.find(x=>x.id===row.dataset.playerId);
+      if(!picked||!same(row.querySelector('.opponentName').value,picked.name)){
+        row.dataset.playerId='';
+        row.querySelector('.opponentSavedPlayer').value='';
+        updateDeckChoice(row,null);
+      }
+    });
+    row.querySelector('.opponentCommander').addEventListener('input',()=>{
+      row.dataset.art='';
+      row.querySelector('img').removeAttribute('src');
+      row.querySelector('.opponentSavedDeck').value='';
+    });
+    row.querySelector('.opponentRemove').addEventListener('click',()=>{
+      row.remove();opponentRows--;updateOpponentCount();
+    });
+    row.querySelector('.opponentSearch').addEventListener('click',async()=>{
+      const input=row.querySelector('.opponentCommander');
+      const wanted=input.value.trim();if(!wanted)return;
+      const button=row.querySelector('.opponentSearch');
+      button.disabled=true;button.textContent='…';
+      try{
+        const response=await fetch('https://api.scryfall.com/cards/named?fuzzy='+encodeURIComponent(wanted));
+        if(!response.ok)throw Error('Comandante non trovato.');
         const card=await response.json();
-        const imgs=card.image_uris || card.card_faces?.[0]?.image_uris || {};
-        const img=validImage(imgs.art_crop || imgs.normal || '');
-        input.value=card.name;
-        row.dataset.art=img;
-        if(img)row.querySelector('img').src=img;
-      } catch(error){app().toast('Scryfall: '+error.message)}
+        const images=card.image_uris||card.card_faces?.[0]?.image_uris||{};
+        const art=validImage(images.art_crop||images.normal||'');
+        input.value=card.name;row.dataset.art=art;
+        if(art)row.querySelector('img').src=art;
+      }catch(e){app().toast('Scryfall: '+e.message)}
       finally{button.disabled=false;button.textContent='🔎'}
     });
+    return row;
   }
   function updateOpponentCount(){
     $('opponentAddBtn').disabled=opponentRows>=5;
-    $('opponentCount').textContent=opponentRows+' avversari';
+    $('opponentCount').textContent=opponentRows===1?'1 avversario':opponentRows+' avversari';
   }
-  function prepareOpponents() {
+  function prepareOpponents(){
+    renderRoster();
     $('opponentTable').innerHTML='';opponentRows=0;
-    for (let i=0;i<3;i++)addOpponentRow();
+    for(let i=0;i<3;i++)addOpponentRow();
     updateOpponentCount();
     $('recordProblems').value='';
   }
-  function collectOpponents() {
+  function collectOpponents(){
     return [...$('opponentTable').querySelectorAll('.opponentRow')].map(row=>({
+      playerId:row.dataset.playerId||'',
       name:row.querySelector('.opponentName').value.trim().slice(0,120),
       commander:row.querySelector('.opponentCommander').value.trim().slice(0,220),
       image:validImage(row.dataset.art||'')
-    })).filter(row=>row.name || row.commander);
+    })).filter(row=>row.name||row.commander);
   }
+  function fillGroup(){
+    const groupId=$('recordGroupSelect').value;
+    const members=roster().opponents.filter(p=>p.groupId===groupId);
+    if(!groupId||!members.length)return app().toast('Questo gruppo non contiene ancora giocatori.');
+    $('opponentTable').innerHTML='';opponentRows=0;
+    members.slice(0,5).forEach(p=>addOpponentRow(p.name,'','',p.id));
+    updateOpponentCount();
+    if(members.length>5)app().toast('Mostrati i primi 5 giocatori: massimo 5 avversari per partita.');
+  }
+  function rememberOpponents(rows){
+    const data=roster(),group=$('recordGroupSelect').value;
+    for(const item of rows){
+      const name=String(item.name||'').trim().slice(0,120);
+      const commander=String(item.commander||'').trim().slice(0,220);
+      if(!name)continue;
+      let p=data.opponents.find(p=>p.id===item.playerId)||data.opponents.find(p=>same(p.name,name));
+      if(!p){
+        if(data.opponents.length>=150)break;
+        p={id:rosterId(),name,groupId:group||'',decks:[]};
+        data.opponents.push(p);
+      }else if(group&&!p.groupId){p.groupId=group}
+      if(commander){
+        const existing=p.decks.find(x=>same(x.commander,commander));
+        const image=validImage(item.image||'');
+        if(existing){if(image)existing.image=image}
+        else if(p.decks.length<20)p.decks.push({commander,image});
+      }
+    }
+    renderRoster();
+  }
+  function avatarStatus(txt){$('profileAvatarStatus').textContent=txt}
+  function displayAvatar(dataUrl){
+    const visible=typeof dataUrl==='string'&&/^data:image\/(?:jpeg|png|webp);base64,/.test(dataUrl);
+    const image=$('profileAvatarImage');
+    if(visible)image.src=dataUrl;else image.removeAttribute('src');
+    image.classList.toggle('hide',!visible);
+    $('profileAvatarFallback').classList.toggle('hide',visible);
+  }
+  async function hydrateAvatar(){
+    try{
+      const item=await archive().loadArtwork(AVATAR_ID);
+      displayAvatar(item?.dataUrl||'');
+      avatarStatus(item?'Foto profilo caricata.':'Puoi scegliere un’immagine dal telefono.');
+    }catch(e){displayAvatar('');avatarStatus('Foto profilo non disponibile: '+e.message)}
+  }
+  async function uploadAvatar(file){
+    if(!file)return;
+    avatarStatus('Sto preparando la foto…');
+    try{
+      const url=await imageToDataUrl(file);
+      await archive().setArtwork(AVATAR_ID,url,'Foto profilo DeckCycle');
+      displayAvatar(url);avatarStatus('Foto profilo aggiornata e inclusa nel backup JSON.');
+      archive().warmExport().catch(()=>{});
+    }catch(e){avatarStatus('Immagine non salvata: '+e.message)}
+  }
+  async function removeAvatar(){
+    try{
+      await archive().removeArtwork(AVATAR_ID);
+      displayAvatar('');avatarStatus('Emoji ripristinata.');
+      archive().warmExport().catch(()=>{});
+    }catch(e){avatarStatus('Non riesco a rimuovere la foto: '+e.message)}
+  }
+  function onRosterImported(){roster();renderRoster();updateOpponentCount();}
 
   function animateReel(pool, winner) {
     const reel = $('reelText');
@@ -435,7 +705,20 @@
       catch(error){artStatus(error.message,true)}
       e.target.value='';
     });
+    roster();renderRoster();
+    $('rosterGroupAddBtn').addEventListener('click',addGroup);
+    $('rosterPlayerAddBtn').addEventListener('click',addRosterPlayer);
+    $('rosterGroups').addEventListener('click',rosterAction);
+    $('rosterPlayers').addEventListener('click',rosterAction);
     $('opponentAddBtn').addEventListener('click',()=>{addOpponentRow();updateOpponentCount()});
+    $('recordGroupFillBtn').addEventListener('click',fillGroup);
+    $('profileAvatarBtn').addEventListener('click',()=>$('profileAvatarFile').click());
+    $('profileAvatarChangeBtn').addEventListener('click',()=>$('profileAvatarFile').click());
+    $('profileAvatarRemoveBtn').addEventListener('click',removeAvatar);
+    $('profileAvatarFile').addEventListener('change',async e=>{
+      await uploadAvatar(e.target.files?.[0]);e.target.value='';
+    });
+    hydrateAvatar();
     $('recordModal').addEventListener('click',e=>{if(e.target===$('recordModal')){opponentRows=0}});
     setTab('play');
     hydrateArtworks().catch(()=>{});
@@ -444,7 +727,8 @@
 
   window.DeckCycleExtras={
     init,setTab,renderAnalysis,artFor,animateReel,prepareOpponents,collectOpponents,
-    hydrateArtworks,artCache,showArtDeck,classify
+    hydrateArtworks,artCache,showArtDeck,classify,
+    rememberOpponents,renderRoster,onRosterImported,hydrateAvatar
   };
   init();
 })();
