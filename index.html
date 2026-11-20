@@ -270,6 +270,30 @@ body.deckcycle-tabs .stack:empty{display:none}
 .drawMiniCard img{width:106px;height:124px;object-fit:cover;object-position:top}
 .drawMiniCard div{padding:10px 14px;min-width:0;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;font-size:15px;line-height:1.25;font-weight:800}
 @media(max-width:560px){.drawRail{width:100%}.drawMiniCard{grid-template-columns:84px minmax(0,1fr)}.drawMiniCard img{width:84px}}
+/* Analisi ScryCheck nella scheda della lista, ottimizzata per iPhone. */
+.scryPanel{border:1px solid var(--gold2);border-radius:16px;background:var(--panel2);padding:15px;margin:18px 0}
+.scryPanel .archiveHeading{margin:14px 0 8px}
+.scryConfig{display:flex;flex-wrap:wrap;align-items:end;gap:9px;margin:13px 0}
+.scrySecret{flex:1 1 210px;min-width:0}
+.scrySecret label{display:block;margin-bottom:5px}
+.scrySecret input{width:100%}
+.scryStatus{font-size:12px;line-height:1.5;min-height:22px;color:var(--muted);margin:7px 0 11px}
+.scrySummary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:12px 0 16px}
+.scryStat{background:var(--panel3);padding:13px 10px;border:1px solid var(--line);border-radius:12px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;min-width:0}
+.scryStat span{color:var(--muted);font-size:11px;font-weight:700}
+.scryStat strong{font-size:31px;color:var(--gold);line-height:1.2}
+.scryStat small{color:var(--text);font-size:11px;line-height:1.45}
+.scryStat .scryWinText{font-size:16px;overflow-wrap:anywhere}
+.scryVectors{display:grid;gap:9px}
+.scryVector{display:grid;grid-template-columns:90px minmax(0,1fr) 28px;gap:9px;align-items:center;font-size:12px}
+.scryVector b{text-align:right;color:var(--gold);font-variant-numeric:tabular-nums}
+.scryTrack{width:100%;height:9px;background:var(--panel3);border-radius:10px;overflow:hidden}
+.scryFill{height:100%;background:linear-gradient(90deg,var(--gold2),var(--gold));border-radius:10px}
+.scryNotice{padding:10px 12px;border:1px solid var(--gold2);border-radius:11px;font-size:12px;margin:10px 0;line-height:1.5}
+.scryLink{display:inline-block;margin:13px 0 10px;font-weight:800}
+.scryWarnings{font-size:12px;line-height:1.6;padding-left:20px}
+.scryThemes{display:flex;gap:6px;flex-wrap:wrap}
+@media(max-width:550px){.scrySummary{grid-template-columns:repeat(2,minmax(0,1fr))}.scryStat:last-child{grid-column:1/-1}.scryConfig .pillBtn,.scryConfig .primary{flex:1 1 auto}.scryPanel{padding:12px}}
 .archiveVersions{padding:12px;border:1px solid var(--line);background:var(--panel2);border-radius:15px;margin:15px 0}
 .archiveDiffColumns{display:grid;grid-template-columns:1fr 1fr;gap:14px;font-size:12px;margin-top:9px}
 .archiveDiffColumns li{margin-bottom:6px;overflow-wrap:anywhere}
@@ -658,6 +682,26 @@ body.deckcycle-tabs .stack:empty{display:none}
       </div>
     </div>
     <div id="archiveMetrics" class="archiveMetrics"></div>
+    <section class="scryPanel" aria-label="Analisi ScryCheck">
+      <div class="sectionHeader">
+        <div>
+          <div class="sectionTitle">🧪 Analisi ScryCheck</div>
+          <div class="sectionSub">Power Level, Bracket, velocità e sinergie del tuo Commander</div>
+        </div>
+      </div>
+      <p class="note">L’analisi è facoltativa e richiede Internet. <b>Le liste inviate a ScryCheck diventano pubbliche</b> sul suo sito. Ti chiederemo conferma prima di inviarle. Il risultato sarà salvato in DeckCycle e incluso nel backup.</p>
+      <div class="scryConfig">
+        <div class="scrySecret">
+          <label class="sectionSub" for="scryAccessCode">Codice personale per l’analisi (NON la chiave API ScryCheck)</label>
+          <input id="scryAccessCode" class="field" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Codice personale configurato su Netlify">
+        </div>
+        <button id="scryAnalyzeBtn" class="primary" type="button">🧪 Analizza con ScryCheck</button>
+        <button id="scryReloadBtn" class="pillBtn hide" type="button">Rileggi analisi salvata</button>
+      </div>
+      <div id="scryStatus" class="scryStatus" role="status" aria-live="polite"></div>
+      <div id="scryResults"></div>
+      <p class="note">Fonte: <a href="https://scrycheck.com/docs/api" target="_blank" rel="noopener noreferrer">ScryCheck</a>. Le sue stime non sono classificazioni ufficiali Wizards of the Coast. La chiave API resta sul server Netlify, mai nel browser.</p>
+    </section>
     <div id="archiveCurve"></div>
 
     <section class="archiveVersions">
@@ -678,6 +722,7 @@ body.deckcycle-tabs .stack:empty{display:none}
 
 <script src="./safeguards.js"></script>
 <script src="./archive.js"></script>
+<script src="./scrycheck-ui.js"></script>
 <script src="./archive-ui.js"></script>
 <script>
 (() => {
@@ -1335,6 +1380,7 @@ document.addEventListener('keydown', e=>{if(e.key==='Escape') document.querySele
 applyTheme(); render();
 window.DeckCycleSafe.installCopiesButton(KEY);
 window.DeckCycleArchiveUI.init();
+window.DeckCycleScryCheck.init();
 window.DeckCycleArchive.saveBaseline(state).catch(error => console.warn('DeckCycle: copia di migrazione IndexedDB non disponibile:', error.message));
 warmArchiveBackup();
 document.addEventListener('visibilitychange', ()=>{
