@@ -270,8 +270,8 @@ body.deckcycle-tabs .stack:empty{display:none}
 .reelSpinTrigger:focus-visible{outline:3px solid var(--gold)}
 .reelSpinTrigger[aria-disabled="true"]{cursor:progress;pointer-events:none}
 .reelSpinTrigger:hover:not([aria-disabled="true"]){border-color:var(--gold2);box-shadow:inset 0 0 30px rgba(240,201,127,.08)}
-.opponentPresetBar{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:7px}
-.opponentPresetBar select{font-size:12px;padding:7px 8px}
+.opponentPresetBar{grid-column:1/-1;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:7px}
+.opponentPresetBar select{font-size:12px;padding:7px 8px;min-width:0}
 .rosterSettings,.avatarSettings{border:1px solid var(--line);border-radius:16px;padding:14px;margin:0 0 20px;background:var(--panel2)}
 .rosterSettings .archiveHeading{margin:15px 0 8px}
 .rosterAddGroup{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
@@ -554,8 +554,8 @@ body.deckcycle-tabs .stack:empty{display:none}
         <div class="row"><button class="pillBtn" type="button" data-go-tab="decks">Apri collezione</button>
           <button class="pillBtn" type="button" data-go-tab="games">Vai allo storico</button></div>
         <p class="note">Questa è una versione di prova. Non rimuovere la PWA originale finché i backup e l'importazione non sono stati verificati su iPhone.</p>
-        <p class="note" id="buildInfo">Versione anteprima: <b>RC1 · Giro estrazioni v2 · 20/11/2026</b>. Se questo indicatore non compare, probabilmente stai ancora usando una versione precedente dell'app.</p>
-        <p class="note" id="deckcycleBuildVersion">Versione anteprima RC1 · 20 novembre 2026 · correzione estrazioni e icona</p>
+        <p class="note" id="buildInfo">Versione anteprima: <b>RC1 · Rubrica e roulette v3 · 20/11/2026</b>. Se questo indicatore non compare, probabilmente stai ancora usando una versione precedente dell'app.</p>
+        <p class="note" id="deckcycleBuildVersion">Versione anteprima RC1 · 20 novembre 2026 · giocatori, foto profilo e sorteggio</p>
       </section>
 
     </div>
