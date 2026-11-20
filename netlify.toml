@@ -1,0 +1,5 @@
+# Preview and production builds share one reproducible icon pipeline.
+# The original artwork is checked in as icon-180.png.
+[build]
+  command = "node scripts/build-icons.cjs"
+  publish = "."
