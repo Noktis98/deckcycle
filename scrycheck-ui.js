@@ -273,7 +273,8 @@
     $('scryAccessCode').addEventListener('change',()=>{
       setMessage('Codice pronto. Verrà ricordato su questo dispositivo dopo una richiesta riuscita se la casella è selezionata.');
     });
-    $('scryRememberCode').checked=!!storedCode();
+    // L'utente ha scelto di ricordare il codice; può disattivare l'opzione.
+    $('scryRememberCode').checked=true;
     $('scryRememberCode').addEventListener('change',()=>{
       if(!$('scryRememberCode').checked && storedCode()){
         try{localStorage.removeItem(DEVICE_CODE_KEY)}catch(e){}
