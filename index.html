@@ -475,6 +475,7 @@ body.deckcycle-tabs .stack:empty{display:none}
         <div class="row"><button class="pillBtn" type="button" data-go-tab="decks">Apri collezione</button>
           <button class="pillBtn" type="button" data-go-tab="games">Vai allo storico</button></div>
         <p class="note">Questa è una versione di prova. Non rimuovere la PWA originale finché i backup e l'importazione non sono stati verificati su iPhone.</p>
+        <p class="note" id="buildInfo">Versione anteprima: <b>RC1 · Giro estrazioni v2 · 20/11/2026</b>. Se questo indicatore non compare, probabilmente stai ancora usando una versione precedente dell'app.</p>
         <p class="note" id="deckcycleBuildVersion">Versione anteprima RC1 · 20 novembre 2026 · correzione estrazioni e icona</p>
       </section>
 
@@ -861,8 +862,9 @@ function renderHero(){
   $('sRate').textContent = t.games ? `${t.rate}%` : '—';
   $('roundInfo').textContent = `Giro partite ${state.round}`;
   const ds=drawStats();
+  const remainingLabel=ds.remaining===1 ? '1 mazzo rimasto' : ds.remaining+' mazzi rimasti';
   $('drawProgress').textContent = ds.eligible ?
-    `🎲 Giro estrazioni ${state.drawSeries} · ${ds.seen}/${ds.eligible} selezionati · ${ds.remaining} mazzi rimasti` :
+    `🎲 Giro estrazioni ${state.drawSeries} · ${ds.seen}/${ds.eligible} selezionati · ${remainingLabel}` :
     '🎲 Nessun mazzo attivo da estrarre';
   $('drawProgress').classList.toggle('drawCompleted',ds.eligible>0 && ds.remaining===0);
   const hero = $('hero');
