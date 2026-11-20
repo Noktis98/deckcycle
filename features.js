@@ -247,10 +247,24 @@
     drawing = true;
     const duration = 2700;
     const sequence = [];
+    let bag = [], previousId = null;
     for (let i = 0; i < 22; i++) {
-      sequence.push(pool[Math.floor(Math.random() * pool.length)]);
+      if (!bag.length) {
+        bag = pool.slice();
+        for (let j = bag.length - 1; j > 0; j--) {
+          const k = Math.floor(Math.random() * (j + 1));
+          [bag[j], bag[k]] = [bag[k], bag[j]];
+        }
+        if (bag.length > 1 && bag[0].id === previousId) {
+          const other = bag.findIndex(deck => deck.id !== previousId);
+          [bag[0], bag[other]] = [bag[other], bag[0]];
+        }
+      }
+      const item = bag.shift();
+      sequence.push(item);
+      previousId = item.id;
     }
-    sequence.push(winner); // Il vincitore rimane quello estratto, non quello visualizzato per caso.
+    sequence.push(winner); // Il vincitore rimane quello estratto prima dell'animazione.
 
     const rail = document.createElement('div');
     rail.className = 'drawRail';
