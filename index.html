@@ -6,7 +6,9 @@
 <meta name="theme-color" content="#120f1e">
 <title>DeckCycle Deluxe</title>
 <link rel="manifest" href="./manifest.webmanifest">
-<link rel="apple-touch-icon" href="./icon-180.png">
+<link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png?v=20261120-1">
+<link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png?v=20261120-1">
+<link rel="icon" type="image/png" sizes="512x512" href="./icon-512.png?v=20261120-1">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="DeckCycle">
@@ -89,6 +91,9 @@ img{display:block;max-width:100%}
 .topbar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
 .brand{display:flex;align-items:center;gap:12px}
 .brandBadge{width:48px;height:48px;border-radius:16px;background:linear-gradient(145deg, var(--gold), #7e5174);display:grid;place-items:center;color:#211923;font-size:26px;box-shadow:var(--shadow)}
+.profileAvatar{border:1px solid var(--gold2);padding:0;overflow:hidden;flex:0 0 48px}
+.profileAvatar img{width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit}
+.profileAvatar img.hide{display:none}
 .brandTitle{font-size:28px;font-weight:900;letter-spacing:-.04em;line-height:1}
 .brandSub{font-size:12px;color:var(--muted);margin-top:3px}
 .topActions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
@@ -116,7 +121,7 @@ img{display:block;max-width:100%}
 .manaRow{display:flex;gap:5px;flex-wrap:wrap}
 .mana{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:900;color:#1e1822;border:1px solid rgba(0,0,0,.22);box-shadow:inset 0 1px 1px rgba(255,255,255,.5)}
 .mW{background:#f6e8be}.mU{background:#8ec6ef}.mB{background:#b7afbd}.mR{background:#f59a84}.mG{background:#95d6a2}.mC{background:#c8cdd3}
-.heroBottom{position:relative;z-index:2;display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.heroBottom{position:relative;z-index:2;display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:30px}
 .statBox{padding:14px;border-radius:18px;background:rgba(255,255,255,.05);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.08)}
 .statLabel{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.12em}
 .statValue{font-size:28px;font-weight:900;line-height:1.1;margin-top:5px}
@@ -156,6 +161,9 @@ textarea{min-height:100px;resize:vertical}
 .timeCard{display:grid;grid-template-columns:1fr auto;gap:10px;padding:12px;border-radius:16px;border:1px solid var(--line);background:linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01))}
 .timeTitle{font-weight:800}
 .timeMeta{font-size:12px;color:var(--muted);margin-top:4px}
+.historyActions{display:flex;justify-content:flex-end;gap:7px;align-items:center;margin-top:8px}
+.historyActions .miniBtn{min-height:36px}
+.historyControls{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px}
 .resultWin{color:var(--green);font-weight:900}.resultLoss{color:var(--red);font-weight:900}
 .empty{padding:24px 16px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:18px;background:rgba(255,255,255,.02)}
 .rankList{display:grid;gap:10px}
@@ -190,6 +198,9 @@ textarea{min-height:100px;resize:vertical}
 .reveal{animation:reveal .45s ease}
 @keyframes reveal{0%{transform:translateY(14px);opacity:0}100%{transform:none;opacity:1}}
 .footer{padding:10px 2px 0;color:var(--muted);font-size:12px;text-align:center}
+.pwaStatus{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:0 0 14px;padding:11px 13px;border:1px solid var(--line);background:var(--panel2);color:var(--text);border-radius:14px;font-size:13px;line-height:1.45}
+.pwaStatus .pillBtn{padding:8px 12px;min-height:38px;white-space:nowrap}
+.pwaStatus [hidden]{display:none !important}
 .hide{display:none !important}
 @media (max-width: 960px){
   .layout{grid-template-columns:1fr}
@@ -201,12 +212,136 @@ textarea{min-height:100px;resize:vertical}
   .heroOverlay{background:linear-gradient(180deg, rgba(9,8,14,.7), rgba(9,8,14,.5))}
   .heroContent{max-width:100%}
   .deckSub{max-width:100%}
-  .heroBottom{grid-template-columns:repeat(2,1fr)}
+  .heroBottom{grid-template-columns:repeat(2,1fr);margin-top:32px}
   .formGrid,.filterRow,.modalGrid{grid-template-columns:1fr}
   .deckCard{grid-template-columns:54px 1fr}
   .deckThumb{width:54px;height:72px}
   .deckActions{grid-column:2;flex-direction:row;flex-wrap:wrap;justify-content:flex-start}
 }
+
+/* Fase 3: archivio delle carte */
+.archiveModal{width:min(980px,100%)}
+.archiveToolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:12px 0}
+.archivePaste{min-height:210px;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:13px;line-height:1.5}
+.archiveStatus{font-size:13px;color:var(--muted);margin:10px 0;line-height:1.5}
+.archiveError{color:var(--red)}
+.archiveMetrics,.archiveCategorySummary{display:flex;gap:7px;flex-wrap:wrap;margin:12px 0}
+.archiveHeading{margin:20px 0 10px;font-size:15px;letter-spacing:.01em}
+.archiveChart{height:164px;display:grid;grid-template-columns:repeat(7,1fr);gap:7px;align-items:end;padding:8px;border:1px solid var(--line);border-radius:15px;background:var(--panel2)}
+.archiveBarCol{height:100%;display:flex;align-items:center;flex-direction:column;gap:5px;font-size:11px}
+.archiveBarValue{min-height:16px;color:var(--muted)}
+.archiveBarTrack{width:100%;flex:1;position:relative}
+.archiveBar{position:absolute;bottom:0;left:10%;width:80%;border-radius:6px 6px 2px 2px;background:linear-gradient(0deg,var(--gold2),var(--gold))}
+.archiveBarLabel{font-weight:800}
+.archiveRows{display:grid;grid-template-columns:repeat(auto-fill,minmax(265px,1fr));gap:8px}
+.archiveCard{display:flex;align-items:flex-start;gap:9px;min-height:64px;border:1px solid var(--line);border-radius:13px;padding:8px;background:var(--panel2)}
+.archiveCardImage{width:58px;height:80px;flex:none;border-radius:6px;object-fit:cover;background:var(--field)}
+.archiveCardCopy{min-width:0;flex:1}
+.archiveCardName{font-size:13px;line-height:1.35;overflow-wrap:anywhere}
+.archiveCardDetails{font-size:11px;color:var(--muted);margin:5px 0;overflow-wrap:anywhere}
+.archiveCardCopy a{font-size:11px;color:var(--gold)}
+.archiveCommander{font-size:10px;color:var(--gold);margin-left:7px}
+@media(max-width:580px){.archiveRows{grid-template-columns:1fr}.archiveModal{padding:12px}.archiveCardImage{width:48px;height:65px}}
+
+
+/* DeckCycle Complete — UI iPhone, navigazione, libreria e versioni */
+.deckBottomNav{position:fixed;z-index:35;left:50%;transform:translateX(-50%);bottom:max(12px,env(safe-area-inset-bottom));width:min(700px,calc(100% - 24px));display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;padding:7px;border:1px solid var(--line);border-radius:20px;background:var(--panel);box-shadow:0 14px 40px rgba(0,0,0,.5)}
+.deckBottomNav button{color:var(--muted);background:transparent;border:0;border-radius:13px;min-width:0;min-height:54px;font-weight:750;font-size:10px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:3px;padding:5px 2px}
+.deckBottomNav button .navIcon{font-size:19px;line-height:1.2}
+.deckBottomNav button.isCurrent{color:var(--gold);background:var(--panel3)}
+body.deckcycle-tabs .app{padding-bottom:calc(110px + env(safe-area-inset-bottom))}
+body.deckcycle-tabs .layout{grid-template-columns:minmax(0,1fr)}
+body.deckcycle-tabs [data-tab]:not(.tabActive){display:none !important}
+body.deckcycle-tabs .stack:empty{display:none}
+.artGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:10px;max-height:360px;overflow:auto;margin:12px 0}
+.artChoice{display:flex;flex-direction:column;gap:6px;text-align:left;padding:7px;border:1px solid var(--line);background:var(--panel2);color:var(--text);border-radius:13px;min-width:0}
+.artChoice img{width:100%;aspect-ratio:4/3;border-radius:8px;object-fit:cover}
+.artChoice span{font-size:11px;line-height:1.3;color:var(--muted)}
+.artChoice:hover{border-color:var(--gold)}
+.artUpload{margin:10px 0;padding:11px;border:1px dashed var(--line);border-radius:13px}
+.opponentRow{display:grid;grid-template-columns:38px minmax(80px,1fr) minmax(95px,1.1fr) 43px 43px;gap:5px;align-items:center;margin:7px 0}
+.opponentRow .field{min-width:0;padding:9px 8px;font-size:12px}
+.opponentArt{width:38px;height:47px;object-fit:cover;border-radius:7px;background:var(--panel3)}
+.opponentRow .pillBtn{padding:8px 5px;min-height:38px}
+.drawProgress{margin:12px auto 0;padding:10px 12px;text-align:center;font-weight:800;color:var(--gold);border:1px solid var(--line);border-radius:11px;background:var(--panel2)}
+.drawProgress.drawCompleted{color:var(--green)}
+.drawProgressHelp{font-size:11px;color:var(--muted);text-align:center;line-height:1.5;margin-top:7px}
+.reelSpinTrigger{cursor:pointer;touch-action:manipulation;min-height:162px;outline-offset:4px}
+.reelSpinTrigger:focus-visible{outline:3px solid var(--gold)}
+.reelSpinTrigger[aria-disabled="true"]{cursor:progress;pointer-events:none}
+.reelSpinTrigger:hover:not([aria-disabled="true"]){border-color:var(--gold2);box-shadow:inset 0 0 30px rgba(240,201,127,.08)}
+.opponentPresetBar{grid-column:1/-1;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:7px}
+.opponentPresetBar select{font-size:12px;padding:7px 8px;min-width:0}
+.rosterSettings,.avatarSettings{border:1px solid var(--line);border-radius:16px;padding:14px;margin:0 0 20px;background:var(--panel2)}
+.rosterSettings .archiveHeading{margin:15px 0 8px}
+.rosterAddGroup{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.rosterAddGroup input{flex:1 1 180px}
+.rosterGroups{display:flex;gap:7px;flex-wrap:wrap}
+.rosterGroupItem{display:flex;align-items:center;gap:5px;padding:5px 8px;border:1px solid var(--line);border-radius:12px}
+.rosterGroupItem button{border:0;background:none;color:var(--muted);font-size:13px}
+.rosterNewPlayer{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.rosterNewPlayer input:first-child{grid-column:1/-1}
+.rosterNewPlayer button{grid-column:1/-1}
+.rosterPlayers{display:grid;gap:10px;margin:12px 0}
+.rosterPlayer{border:1px solid var(--line);padding:11px;border-radius:14px;background:var(--panel3)}
+.rosterPlayerFields{display:grid;grid-template-columns:minmax(100px,1fr) minmax(110px,1fr);gap:8px}
+.rosterDeckRow{display:grid;grid-template-columns:minmax(0,1fr) 38px;gap:7px;margin:7px 0}
+.rosterPlayerActions{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
+.rosterPlayer .miniBtn{padding:7px}
+.rosterMatchGroup{display:grid;grid-template-columns:1fr auto;gap:6px;margin:10px 0 12px}
+.rosterMatchGroup label{grid-column:1/-1}
+@media(max-width:420px){.rosterPlayerFields,.rosterNewPlayer{grid-template-columns:1fr}.rosterNewPlayer input:first-child,.rosterNewPlayer button{grid-column:auto}}
+.drawViewport{position:absolute;inset:0;overflow:hidden;display:flex;align-items:flex-start;justify-content:center;pointer-events:none}
+.reelWrap{position:relative;overflow:hidden;min-height:152px;height:152px}
+.drawRail{display:flex;flex-direction:column;gap:8px;align-items:stretch;width:min(100%,420px);will-change:transform}
+.drawMiniCard{width:100%;height:124px;min-height:124px;flex:0 0 124px;display:grid;grid-template-columns:106px minmax(0,1fr);align-items:center;border:1px solid var(--gold2);background:var(--panel3);color:var(--text);border-radius:13px;overflow:hidden;box-shadow:0 8px 19px rgba(0,0,0,.35)}
+.drawMiniCard img{width:106px;height:124px;object-fit:cover;object-position:top}
+.drawMiniCard div{padding:10px 14px;min-width:0;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;font-size:15px;line-height:1.25;font-weight:800}
+@media(max-width:560px){.drawRail{width:100%}.drawMiniCard{grid-template-columns:84px minmax(0,1fr)}.drawMiniCard img{width:84px}}
+/* Analisi ScryCheck nella scheda della lista, ottimizzata per iPhone. */
+.scryPanel{border:1px solid var(--gold2);border-radius:16px;background:var(--panel2);padding:15px;margin:18px 0}
+.scryPanel .archiveHeading{margin:14px 0 8px}
+.scryConfig{display:flex;flex-wrap:wrap;align-items:end;gap:9px;margin:13px 0}
+.scrySecret{flex:1 1 210px;min-width:0}
+.scrySecret label{display:block;margin-bottom:5px}
+.scrySecret > input{width:100%}
+.scryRememberChoice{display:flex;align-items:center;gap:9px;margin:13px 0 9px;font-size:12px;font-weight:700;cursor:pointer}
+.scryRememberChoice input{width:18px;height:18px;accent-color:var(--gold);flex:0 0 18px}
+.scryRememberFoot{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px}
+.scryRememberFoot .miniBtn{font-size:11px;padding:7px 10px}
+.scryStatus{font-size:12px;line-height:1.5;min-height:22px;color:var(--muted);margin:7px 0 11px}
+.scrySummary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:12px 0 16px}
+.scryStat{background:var(--panel3);padding:13px 10px;border:1px solid var(--line);border-radius:12px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;min-width:0}
+.scryStat span{color:var(--muted);font-size:11px;font-weight:700}
+.scryStat strong{font-size:31px;color:var(--gold);line-height:1.2}
+.scryStat small{color:var(--text);font-size:11px;line-height:1.45}
+.scryStat .scryWinText{font-size:16px;overflow-wrap:anywhere}
+.scryVectors{display:grid;gap:9px}
+.scryVector{display:grid;grid-template-columns:90px minmax(0,1fr) 28px;gap:9px;align-items:center;font-size:12px}
+.scryVector b{text-align:right;color:var(--gold);font-variant-numeric:tabular-nums}
+.scryTrack{width:100%;height:9px;background:var(--panel3);border-radius:10px;overflow:hidden}
+.scryFill{height:100%;background:linear-gradient(90deg,var(--gold2),var(--gold));border-radius:10px}
+.scryNotice{padding:10px 12px;border:1px solid var(--gold2);border-radius:11px;font-size:12px;margin:10px 0;line-height:1.5}
+.scryLink{display:inline-block;margin:13px 0 10px;font-weight:800}
+.scryWarnings{font-size:12px;line-height:1.6;padding-left:20px}
+.scryThemes{display:flex;gap:6px;flex-wrap:wrap}
+@media(max-width:550px){.scrySummary{grid-template-columns:repeat(2,minmax(0,1fr))}.scryStat:last-child{grid-column:1/-1}.scryConfig .pillBtn,.scryConfig .primary{flex:1 1 auto}.scryPanel{padding:12px}}
+.archiveVersions{padding:12px;border:1px solid var(--line);background:var(--panel2);border-radius:15px;margin:15px 0}
+.archiveDiffColumns{display:grid;grid-template-columns:1fr 1fr;gap:14px;font-size:12px;margin-top:9px}
+.archiveDiffColumns li{margin-bottom:6px;overflow-wrap:anywhere}
+.analysisSummary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin:10px 0 20px}
+.analysisStat{display:flex;flex-direction:column;gap:3px;border:1px solid var(--line);border-radius:14px;background:var(--panel2);padding:14px;text-align:center}
+.analysisStat b{font-size:24px;color:var(--gold)}
+.analysisStat span{font-size:11px;color:var(--muted)}
+.analysisResult{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px;border-bottom:1px solid var(--line);font-size:13px;flex-wrap:wrap}
+.analysisBreakdown{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.analysisBreakdown>div{border-radius:12px;padding:10px 7px;text-align:center;background:var(--panel2);display:flex;flex-direction:column;gap:4px}
+.analysisBreakdown b{font-size:22px;color:var(--gold)}
+.analysisBreakdown span{font-size:10px;color:var(--muted)}
+.analysisNote{margin:7px 0;padding:10px 12px;background:var(--panel2);border-radius:11px;font-size:12px}
+@media(max-width:560px){.analysisSummary{grid-template-columns:repeat(2,minmax(0,1fr))}.analysisBreakdown{grid-template-columns:repeat(3,1fr)}.archiveDiffColumns{grid-template-columns:1fr}.opponentRow{grid-template-columns:34px 1fr 1fr 34px 34px;gap:4px}.opponentRow .pillBtn{font-size:11px;padding:5px 0}.opponentRow .field{font-size:11px;padding:8px 5px}}
+@media(prefers-reduced-motion:reduce){.drawRail{transition:none !important}.deckBottomNav button{transition:none}}
+
 </style>
 </head>
 <body>
@@ -217,7 +352,7 @@ textarea{min-height:100px;resize:vertical}
 <div class="app">
   <header class="topbar">
     <div class="brand">
-      <div class="brandBadge">🃏</div>
+      <button class="brandBadge profileAvatar" id="profileAvatarBtn" type="button" aria-label="Modifica foto profilo" title="Modifica foto profilo"><img id="profileAvatarImage" class="hide" alt="Foto profilo"><span id="profileAvatarFallback">🃏</span></button>
       <div>
         <div class="brandTitle">DeckCycle Deluxe</div>
         <div class="brandSub">Rotazione intelligente dei mazzi Commander • Mobile first</div>
@@ -234,16 +369,20 @@ textarea{min-height:100px;resize:vertical}
       <input type="file" id="importFile" accept="application/json" class="hide">
     </div>
   </header>
+  <div class="pwaStatus hide" id="pwaStatus" role="status" aria-live="polite">
+    <span id="pwaStatusText"></span>
+    <button class="pillBtn" id="pwaUpdateBtn" type="button" hidden>Aggiorna</button>
+  </div>
 
   <div class="layout">
     <div class="stack">
-      <section class="card hero reveal" id="hero">
+      <section class="card hero reveal" id="hero" data-tab="play">
         <img id="heroArt" class="heroArt hide" alt="Artwork comandante">
         <div class="heroOverlay"></div>
         <div class="heroContent">
           <div class="kicker">Mazzo estratto</div>
           <div class="deckTitle" id="heroName">Pronto per il prossimo giro?</div>
-          <div class="deckSub" id="heroDesc">Pesca un mazzo dalla tua collezione. Quelli già giocati nel giro corrente vengono esclusi automaticamente, ma restano sempre selezionabili a mano.</div>
+          <div class="deckSub" id="heroDesc">Tocca la roulette qui sotto per scoprire il prossimo mazzo. Il risultato comparirà qui al termine dell'animazione.</div>
           <div class="tagRow">
             <div class="manaRow" id="heroColors"></div>
             <span class="tag" id="heroBracket">Bracket —</span>
@@ -251,43 +390,46 @@ textarea{min-height:100px;resize:vertical}
             <span class="tag" id="heroStatus">Nessun mazzo selezionato</span>
           </div>
           <div class="drawControls">
-            <button class="primary" id="drawBtn">✨ Pesca un mazzo</button>
-            <button class="secondary" id="rerollBtn">🎲 Cambia mazzo</button>
             <button class="success" id="winBtn">🏆 Vittoria</button>
             <button class="danger" id="lossBtn">💀 Sconfitta</button>
           </div>
         </div>
         <div class="heroBottom">
           <div class="statBox"><div class="statLabel">Totale mazzi</div><div class="statValue" id="sDecks">0</div></div>
-          <div class="statBox"><div class="statLabel">Disponibili</div><div class="statValue" id="sAvailable">0</div></div>
+          <div class="statBox"><div class="statLabel">Da estrarre</div><div class="statValue" id="sAvailable">0</div></div>
           <div class="statBox"><div class="statLabel">Partite</div><div class="statValue" id="sGames">0</div></div>
           <div class="statBox"><div class="statLabel">Win rate</div><div class="statValue" id="sRate">—</div></div>
         </div>
       </section>
 
-      <section class="card section reveal">
+      <section class="card section reveal" data-tab="play">
         <div class="sectionHeader">
           <div>
             <div class="sectionTitle">Sorteggio animato</div>
-            <div class="sectionSub">Usa i filtri attivi per limitare il pool dei mazzi da pescare.</div>
+            <div class="sectionSub">Tocca la ruota per estrarre. Solo quando si ferma, il mazzo compare nel riquadro superiore. I mazzi già estratti restano esclusi.</div>
           </div>
           <div class="row">
-            <button class="pillBtn" id="newRoundBtn">Nuovo giro</button>
+            <button class="pillBtn" id="newRoundBtn" type="button">Nuovo giro partite</button>
+            <button class="pillBtn" id="resetDrawBtn" type="button">Ricomincia estrazioni</button>
             <button class="pillBtn" id="undoBtn">Annulla ultimo risultato</button>
           </div>
         </div>
         <div class="drawMachine">
           <div class="machineTop">
             <div class="machineLabel">Ruota del destino</div>
-            <div class="sectionSub" id="roundInfo">Giro 1</div>
+            <div class="sectionSub" id="roundInfo">Giro partite 1</div>
           </div>
-          <div class="reelWrap">
-            <div class="reelText" id="reelText">Tocca “Pesca un mazzo”</div>
+          <div class="reelWrap reelSpinTrigger" id="spinReelBtn" role="button" tabindex="0" aria-label="Gira la ruota per estrarre un mazzo">
+            <div class="reelText" id="reelText">🎲 Tocca qui per girare la ruota</div>
           </div>
+          <div id="drawProgress" class="drawProgress" aria-live="polite">
+            🎲 Giro estrazioni 1 · Non ancora iniziato
+          </div>
+          <div class="drawProgressHelp">Il mazzo viene escluso dopo ogni estrazione, anche senza una partita registrata.</div>
         </div>
       </section>
 
-      <section class="card section reveal">
+      <section class="card section reveal" data-tab="decks">
         <div class="sectionHeader">
           <div>
             <div class="sectionTitle">Aggiungi mazzo</div>
@@ -308,7 +450,7 @@ textarea{min-height:100px;resize:vertical}
         </form>
       </section>
 
-      <section class="card section reveal">
+      <section class="card section reveal" data-tab="decks">
         <div class="sectionHeader">
           <div>
             <div class="sectionTitle">I tuoi mazzi</div>
@@ -334,7 +476,7 @@ textarea{min-height:100px;resize:vertical}
     </div>
 
     <div class="stack">
-      <section class="card section reveal">
+      <section class="card section reveal" data-tab="games">
         <div class="sectionHeader">
           <div>
             <div class="sectionTitle">Storico completo</div>
@@ -342,9 +484,13 @@ textarea{min-height:100px;resize:vertical}
           </div>
         </div>
         <div id="history" class="timeline"></div>
+        <div class="historyControls">
+          <span class="sectionSub" id="historyCount" aria-live="polite"></span>
+          <button id="historyMoreBtn" class="pillBtn hide" type="button">Mostra altre 60 partite</button>
+        </div>
       </section>
 
-      <section class="card section reveal">
+      <section class="card section reveal" data-tab="analysis">
         <div class="sectionHeader">
           <div>
             <div class="sectionTitle">Classifica mazzi</div>
@@ -354,19 +500,80 @@ textarea{min-height:100px;resize:vertical}
         <div id="ranking" class="rankList"></div>
       </section>
 
-      <section class="card section reveal">
+      <section class="card section reveal" data-tab="analysis">
         <div class="sectionHeader">
           <div>
             <div class="sectionTitle">Risultati per mese</div>
-            <div class="sectionSub">Panoramica rapida delle ultime partite.</div>
+            <div class="sectionSub">Risultati separati per anno, senza sommare anni diversi.</div>
           </div>
+          <select id="monthsYear" class="pillBtn" aria-label="Anno dei risultati" style="width:auto;max-width:150px"></select>
         </div>
         <div id="months" class="monthGrid"></div>
       </section>
+
+      <section class="card section reveal" data-tab="analysis">
+        <div class="sectionHeader"><div><div class="sectionTitle">Analisi Commander</div>
+          <div class="sectionSub">Stime dai testi Oracle, risultati reali delle partite e confronti per versione.</div></div></div>
+        <div id="analysisSummary" class="analysisSummary"></div>
+        <div id="analysisResults"></div>
+        <div class="row" style="margin:14px 0"><label for="analysisSelect" class="sectionSub">Mazzo da analizzare</label>
+          <select id="analysisSelect" style="width:auto;max-width:280px"></select></div>
+        <div id="analysisDetails"></div>
+      </section>
+      <section class="card section reveal" data-tab="settings">
+        <section class="rosterSettings" aria-label="Gruppi e avversari salvati">
+          <div class="sectionTitle">👥 Gruppi e avversari</div>
+          <p class="note">Salva i giocatori abituali e i loro mazzi. Quando registri una partita puoi selezionarli al volo, oppure aggiungere un giocatore nuovo direttamente da quella schermata.</p>
+          <div class="archiveHeading">Gruppi di gioco</div>
+          <div class="rosterAddGroup">
+            <input class="field" id="rosterGroupName" maxlength="70" placeholder="Es. Tavolo del venerdì" aria-label="Nome nuovo gruppo">
+            <button class="pillBtn" id="rosterGroupAddBtn" type="button">+ Crea gruppo</button>
+          </div>
+          <div id="rosterGroups" class="rosterGroups"></div>
+          <div class="archiveHeading">Aggiungi un avversario</div>
+          <div class="rosterNewPlayer">
+            <input id="rosterNewName" class="field" maxlength="120" placeholder="Nome del giocatore" aria-label="Nuovo giocatore">
+            <select id="rosterNewGroup" aria-label="Gruppo del giocatore"><option value="">Senza gruppo</option></select>
+            <input id="rosterNewDeck" class="field" maxlength="220" placeholder="Comandante o mazzo (facoltativo)" aria-label="Mazzo abituale">
+            <button class="primary" id="rosterPlayerAddBtn" type="button">+ Salva giocatore</button>
+          </div>
+          <div id="rosterPlayers" class="rosterPlayers"></div>
+          <p class="note">I gruppi e i giocatori vengono inclusi nel backup JSON di DeckCycle. Puoi sempre cambiare nome, gruppo o mazzi salvati.</p>
+        </section>
+        <section class="avatarSettings" aria-label="Foto profilo">
+          <div class="sectionTitle">🖼️ Foto profilo</div>
+          <p class="note">Sostituisci l'emoji della carta in alto a sinistra con una tua immagine. Non cambia l'icona installata dell'app sull'iPhone.</p>
+          <div class="row">
+            <button id="profileAvatarChangeBtn" type="button" class="pillBtn">Carica immagine</button>
+            <button id="profileAvatarRemoveBtn" type="button" class="pillBtn">Ripristina emoji</button>
+            <input id="profileAvatarFile" type="file" accept="image/*" class="hide">
+          </div>
+          <div id="profileAvatarStatus" class="sectionSub" role="status" aria-live="polite"></div>
+        </section>
+        <div class="sectionTitle">Impostazioni e protezione dati</div>
+        <p class="note">DeckCycle salva mazzi, storico, versioni e artwork sul dispositivo, non su un server.
+          Per proteggerli usa <b>Esporta</b> e conserva il JSON in File/iCloud Drive.
+          Per recuperare uno stato precedente apri <b>Copie</b>, in alto.</p>
+        <p class="note">Le immagini da Scryfall richiedono Internet. Le liste già salvate restano disponibili offline.</p>
+        <div class="row"><button class="pillBtn" type="button" data-go-tab="decks">Apri collezione</button>
+          <button class="pillBtn" type="button" data-go-tab="games">Vai allo storico</button></div>
+        <p class="note">Questa è una versione di prova. Non rimuovere la PWA originale finché i backup e l'importazione non sono stati verificati su iPhone.</p>
+        <p class="note" id="buildInfo">Versione anteprima: <b>RC1 · Rubrica e roulette v3 · 20/11/2026</b>. Se questo indicatore non compare, probabilmente stai ancora usando una versione precedente dell'app.</p>
+        <p class="note" id="deckcycleBuildVersion">Versione anteprima RC1 · 20 novembre 2026 · giocatori, foto profilo e sorteggio</p>
+      </section>
+
     </div>
   </div>
 
-  <div class="footer">DeckCycle Deluxe salva i dati nel browser del dispositivo. Le immagini dei comandanti arrivano da Scryfall e richiedono Internet.</div>
+  <div class="footer">DeckCycle Deluxe salva i dati sul dispositivo. Esporta periodicamente un backup completo.</div>
+  <nav class="deckBottomNav" aria-label="Navigazione DeckCycle">
+    <button type="button" data-go-tab="play"><span class="navIcon">🎲</span>Gioca</button>
+    <button type="button" data-go-tab="decks"><span class="navIcon">🃏</span>Mazzi</button>
+    <button type="button" data-go-tab="games"><span class="navIcon">🏆</span>Partite</button>
+    <button type="button" data-go-tab="analysis"><span class="navIcon">📊</span>Analisi</button>
+    <button type="button" data-go-tab="settings"><span class="navIcon">⚙️</span>Altro</button>
+  </nav>
+
 </div>
 
 <div class="modalBg" id="recordModal">
@@ -377,12 +584,23 @@ textarea{min-height:100px;resize:vertical}
     </div>
     <div class="modalGrid">
       <div>
-        <label class="sectionSub">Avversari</label>
-        <input class="field" id="recordOpponents" placeholder="Es. Luca, Marco, Alessio">
-        <label class="sectionSub" style="display:block;margin-top:12px">Comandanti affrontati</label>
-        <input class="field" id="recordEnemy" placeholder="Es. Atraxa, Krenko, Omnath">
-        <label class="sectionSub" style="display:block;margin-top:12px">Note</label>
+        <label class="sectionSub">Note</label>
         <textarea id="recordNotes" placeholder="Come è andata? match-up? carte da cambiare?"></textarea>
+
+        <div class="archiveHeading">Tavolo Commander</div>
+        <div class="sectionSub">Seleziona un giocatore salvato e uno dei suoi mazzi, oppure scrivine uno nuovo: verrà ricordato quando confermi il risultato.</div>
+        <div class="rosterMatchGroup"><label class="sectionSub" for="recordGroupSelect">Carica un gruppo abituale</label>
+          <select id="recordGroupSelect"><option value="">Seleziona gruppo…</option></select>
+          <button id="recordGroupFillBtn" class="pillBtn" type="button">Carica giocatori</button>
+        </div>
+        <div class="row" style="justify-content:space-between;margin:8px 0">
+          <span id="opponentCount" class="sectionSub">3 avversari</span>
+          <button type="button" class="pillBtn" id="opponentAddBtn">+ Avversario</button>
+        </div>
+        <div id="opponentTable"></div>
+        <label class="sectionSub" for="recordProblems" style="display:block;margin-top:12px">Difficoltà riscontrate durante la partita</label>
+        <textarea id="recordProblems" placeholder="Es. Ho pescato poche terre, mancavano removal, non sono riuscito a proteggere il comandante..."></textarea>
+
       </div>
       <div class="previewCard">
         <img id="recordArt" class="previewArt hide" alt="Artwork comandante">
@@ -422,6 +640,8 @@ textarea{min-height:100px;resize:vertical}
         <label class="sectionSub" style="display:block;margin-top:12px">Link Moxfield</label>
         <input class="field" id="editMoxfield" placeholder="https://www.moxfield.com/decks/...">
         <div class="row" style="margin-top:14px">
+          <button class="pillBtn" id="openDeckListBtn" type="button">📚 Lista carte</button>
+          <button class="pillBtn" id="openArtModalBtn" type="button">🎨 Cambia artwork</button>
           <button class="pillBtn" id="refreshArtBtn" type="button">Aggiorna da Scryfall</button>
           <button class="pillBtn" id="togglePauseBtn" type="button">Metti in pausa</button>
           <button class="danger" id="deleteDeckBtn" type="button">Elimina</button>
@@ -443,28 +663,170 @@ textarea{min-height:100px;resize:vertical}
   </div>
 </div>
 
+
+<div class="modalBg" id="historyEditModal">
+  <div class="modal">
+    <div class="modalHead">
+      <div class="modalTitle">Correggi una partita</div>
+      <button class="iconBtn" type="button" data-close="historyEditModal" aria-label="Chiudi">✕</button>
+    </div>
+    <p class="note" id="historyEditDeck">Partita</p>
+    <div class="modalGrid">
+      <div>
+        <label class="sectionSub" for="historyEditResult">Risultato</label>
+        <select id="historyEditResult"><option value="win">🏆 Vittoria</option><option value="loss">💀 Sconfitta</option></select>
+        <label class="sectionSub" style="display:block;margin-top:12px" for="historyEditOpponents">Avversari</label>
+        <input class="field" id="historyEditOpponents">
+        <label class="sectionSub" style="display:block;margin-top:12px" for="historyEditEnemy">Comandanti affrontati</label>
+        <input class="field" id="historyEditEnemy">
+      </div>
+      <div>
+        <label class="sectionSub" for="historyEditNotes">Note</label>
+        <textarea id="historyEditNotes" placeholder="Come è andata la partita?"></textarea>
+        <p class="note">Correggere vittoria o sconfitta aggiorna subito le statistiche senza cambiare il giro dei mazzi.</p>
+      </div>
+    </div>
+    <div class="row" style="justify-content:space-between;margin-top:16px">
+      <button class="danger" id="historyDeleteBtn" type="button">Elimina partita</button>
+      <div class="row">
+        <button class="secondary" data-close="historyEditModal" type="button">Annulla</button>
+        <button class="primary" id="historySaveBtn" type="button">Salva correzione</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+<div class="modalBg" id="artModal">
+  <div class="modal">
+    <div class="modalHead"><div class="modalTitle" id="artTitle">Artwork del comandante</div>
+      <button class="iconBtn" type="button" id="artCloseBtn" aria-label="Chiudi">✕</button></div>
+    <p id="artStatus" class="archiveStatus" role="status"></p>
+    <div class="row"><input class="field" id="artSearchName" placeholder="Nome del comandante" style="flex:1">
+      <button class="primary" id="artSearchBtn" type="button">Stampe Scryfall</button></div>
+    <div id="artGallery" class="artGrid"></div>
+    <div class="artUpload">
+      <div class="archiveHeading">Artwork personalizzato</div>
+      <p class="note">Usa una foto o un proxy dal tuo telefono. Viene ridimensionato e salvato in IndexedDB, e incluso nei backup completi.</p>
+      <input id="artFile" type="file" accept="image/png,image/jpeg,image/webp" class="field">
+      <p class="note">Oppure usa il link HTTPS di un'immagine.</p>
+      <div class="row"><input class="field" id="artCustomUrl" placeholder="https://…" style="flex:1">
+        <button class="pillBtn" type="button" id="artUrlBtn">Usa URL</button></div>
+    </div>
+  </div>
+</div>
+
+<div class="modalBg" id="archiveModal">
+  <div class="modal archiveModal">
+    <div class="modalHead">
+      <div>
+        <div class="modalTitle" id="archiveTitle">Lista carte</div>
+        <div class="sectionSub">Archivio locale · Moxfield · Scryfall</div>
+      </div>
+      <button class="iconBtn" id="archiveCloseBtn" data-close="archiveModal" type="button" aria-label="Chiudi lista carte">✕</button>
+    </div>
+    <p class="archiveStatus" id="archiveStatus" role="status" aria-live="polite"></p>
+    <div class="archiveToolbar">
+      <button class="pillBtn" id="archiveEditBtn" type="button">✏️ Importa o modifica lista</button>
+      <button class="pillBtn" id="archiveRefreshBtn" type="button">🔄 Aggiorna Scryfall</button>
+      <button class="pillBtn" id="archiveImagesBtn" type="button">Nascondi immagini</button>
+    </div>
+    <div id="archiveEditor" class="hide">
+      <label class="sectionSub" for="archivePaste">Incolla la lista Moxfield (1 Nome Carta). Puoi includere Commander, Deck, set e numeri di collezione.</label>
+      <textarea id="archivePaste" class="archivePaste" spellcheck="false" placeholder="Commander&#10;1 Wilhelt, the Rotcleaver&#10;&#10;Deck&#10;1 Sol Ring&#10;1 Arcane Signet&#10;1 Command Tower"></textarea>
+      <div class="row" style="margin:9px 0 14px">
+        <button class="primary" id="archiveSaveBtn" type="button">Salva lista</button>
+        <span class="note">Una lista incompleta può essere salvata dopo conferma.</span>
+      </div>
+    </div>
+    <div id="archiveMetrics" class="archiveMetrics"></div>
+    <section class="scryPanel" aria-label="Analisi ScryCheck">
+      <div class="sectionHeader">
+        <div>
+          <div class="sectionTitle">🧪 Analisi ScryCheck</div>
+          <div class="sectionSub">Power Level, Bracket, velocità e sinergie del tuo Commander</div>
+        </div>
+      </div>
+      <p class="note">L’analisi è facoltativa e richiede Internet. <b>Le liste inviate a ScryCheck diventano pubbliche</b> sul suo sito. Ti chiederemo conferma prima di inviarle. Il risultato sarà salvato in DeckCycle e incluso nel backup.</p>
+      <div class="scryConfig">
+        <div class="scrySecret">
+          <label class="sectionSub" for="scryAccessCode">Codice personale per l’analisi (NON la chiave API ScryCheck)</label>
+          <input id="scryAccessCode" class="field" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Codice personale configurato su Netlify">
+          <label class="scryRememberChoice" for="scryRememberCode">
+            <input id="scryRememberCode" type="checkbox">
+            Ricorda il codice su questo iPhone
+          </label>
+          <div class="scryRememberFoot">
+            <span id="scryRememberInfo" class="note">Se lo ricordi, non dovrai reinserirlo per le prossime analisi.</span>
+            <button id="scryForgetCodeBtn" class="miniBtn" type="button" disabled>Dimentica codice</button>
+          </div>
+          <p class="note">Salvato solo in questo browser, non nei backup. Evita questa opzione su un dispositivo condiviso.</p>
+        </div>
+        <button id="scryAnalyzeBtn" class="primary" type="button">🧪 Analizza con ScryCheck</button>
+        <button id="scryReloadBtn" class="pillBtn hide" type="button">Rileggi analisi salvata</button>
+      </div>
+      <div id="scryStatus" class="scryStatus" role="status" aria-live="polite"></div>
+      <div id="scryResults"></div>
+      <p class="note">Fonte: <a href="https://scrycheck.com/docs/api" target="_blank" rel="noopener noreferrer">ScryCheck</a>. Le sue stime non sono classificazioni ufficiali Wizards of the Coast. La chiave API resta sul server Netlify, mai nel browser.</p>
+    </section>
+    <div id="archiveCurve"></div>
+
+    <section class="archiveVersions">
+      <div class="archiveHeading">Versioni del mazzo</div>
+      <p class="note">Salva una fotografia della lista, confronta aggiunte e tagli oppure ripristina una versione precedente.</p>
+      <div class="archiveToolbar"><button class="pillBtn" type="button" id="archiveVersionSaveBtn">+ Salva versione</button>
+        <select id="archiveVersionSelect" style="max-width:300px"><option value="">Seleziona versione precedente</option></select>
+        <button class="pillBtn" id="archiveVersionCompareBtn" type="button">Confronta</button>
+        <button class="pillBtn" id="archiveVersionRestoreBtn" type="button">Ripristina</button>
+      </div>
+      <div id="archiveVersionDiff"></div>
+    </section>
+
+    <div id="archiveCards"></div>
+    <p class="note" style="margin-top:15px">Le liste e i metadati sono salvati su questo dispositivo. Esporta un backup JSON anche su File/iCloud: la memoria locale non è una sincronizzazione tra dispositivi.</p>
+  </div>
+</div>
+
+<script src="./safeguards.js"></script>
+<script src="./archive.js"></script>
+<script src="./scrycheck-ui.js"></script>
+<script src="./archive-ui.js"></script>
 <script>
 (() => {
 const KEY = 'deckcycle_magic_v1';
 const $ = id => document.getElementById(id);
-const DEFAULT_STATE = {decks:[], history:[], round:1, selected:null, theme:'magic', filters:{q:'', color:'', bracket:'', only:false}};
+const DEFAULT_STATE = {opponentGroups:[], opponents:[], decks:[], history:[], round:1, roundOrigin:'manual', selected:null, selectedManually:false, drawSeries:1, drawnIds:[], theme:'magic', filters:{q:'', color:'', bracket:'', only:false}};
 let state = load();
+if(!Array.isArray(state.opponentGroups)) state.opponentGroups=[];
+if(!Array.isArray(state.opponents)) state.opponents=[];
+if(state.pendingDrawId && state.decks.some(d=>d.id===state.pendingDrawId)) {
+  state.selected=state.pendingDrawId; // recupera un sorteggio interrotto in Safari
+}
+state.pendingDrawId=null;
+// Compatibile con i backup precedenti: non cambia nessuna partita registrata.
+if(!Array.isArray(state.drawnIds)) state.drawnIds = [];
+state.drawnIds = [...new Set(state.drawnIds.filter(id =>
+  typeof id === 'string' && state.decks.some(d=>d.id===id)))];
+state.drawSeries = Number.isInteger(state.drawSeries) && state.drawSeries>0 ? state.drawSeries : 1;
 let editId = null;
 let pendingResult = null;
+let editingHistoryId = null;
+let historyVisibleCount = 60;
+let selectedMonthYear = null;
+let archiveBackupError = null;
+function warmArchiveBackup(){
+  return window.DeckCycleArchive.warmExport().then(()=>{
+    archiveBackupError = null;
+  }).catch(error=>{
+    archiveBackupError = error.message;
+    console.warn('DeckCycle: preparazione backup carte:', error.message);
+  });
+}
 
 function uid(){return Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4)}
-function load(){
-  try{
-    const raw = JSON.parse(localStorage.getItem(KEY)||'null');
-    const merged = {...DEFAULT_STATE, ...(raw||{})};
-    merged.decks = Array.isArray(merged.decks)? merged.decks.map(normalizeDeck) : [];
-    merged.history = Array.isArray(merged.history)? merged.history.map(h => ({...h, id:h.id||uid()})) : [];
-    merged.filters = {...DEFAULT_STATE.filters, ...(merged.filters||{})};
-    if(!['magic','dark','light'].includes(merged.theme)) merged.theme='magic';
-    return merged;
-  }catch{return structuredClone(DEFAULT_STATE)}
-}
-function save(){localStorage.setItem(KEY, JSON.stringify(state))}
+function load(){return window.DeckCycleSafe.load(KEY, DEFAULT_STATE, normalizeDeck, uid)}
+function save(){return window.DeckCycleSafe.save(KEY, state)}
 function normalizeDeck(d){
   return {
     id: d.id || uid(),
@@ -478,6 +840,9 @@ function normalizeDeck(d){
     moxfield: typeof d.moxfield === 'string' ? d.moxfield : '',
     image: typeof d.image === 'string' ? d.image : '',
     artist: d.artist || '',
+    customArt: !!d.customArt,
+    artLocked: !!d.artLocked,
+    versionTag: typeof d.versionTag === 'string' ? d.versionTag : '',
     played: !!d.played,
     paused: !!d.paused
   }
@@ -496,6 +861,11 @@ function toast(msg){
 }
 function applyTheme(){document.documentElement.dataset.theme = state.theme; $('theme').value = state.theme}
 function getDeck(id){return state.decks.find(d=>d.id===id)}
+function chosenArt(deck){
+  if(!deck) return '';
+  if(window.DeckCycleExtras) return window.DeckCycleExtras.artFor(deck);
+  return deck.customArt ? '' : (deck.image || '');
+}
 function deckStats(deck){
   const list = state.history.filter(h => h.deckId === deck.id);
   const wins = list.filter(h => h.result === 'win').length;
@@ -511,18 +881,43 @@ function totalStats(){
 function activeDecks(){return state.decks.filter(d=>!d.paused)}
 function matchesFilters(d){
   const q = (state.filters.q||'').trim().toLowerCase();
-  if(q && !(d.name.toLowerCase().includes(q) || d.commander.toLowerCase().includes(q) || d.strategy.toLowerCase().includes(q))) return false;
-  if(state.filters.color && !d.colors.includes(state.filters.color.split('')[0]) && d.colors !== state.filters.color) {
-    // if filter is multicolor exact-ish, require all selected colors contained
-    const wanted = state.filters.color.split('');
-    if(!wanted.every(c => d.colors.includes(c))) return false;
+  if(q && !(d.name.toLowerCase().includes(q) || d.commander.toLowerCase().includes(q) || String(d.strategy||'').toLowerCase().includes(q))) return false;
+  const wanted = state.filters.color || '';
+  if(wanted){
+    // Un colore = contiene il colore; gilda / 5 colori = identità cromatica esatta.
+    if(wanted.length === 1 ? !d.colors.includes(wanted) : d.colors !== wanted) return false;
   }
   if(state.filters.bracket && String(d.bracket||'') !== String(state.filters.bracket)) return false;
-  if(state.filters.only && (d.played || d.paused)) return false;
+  if(state.filters.only && (d.played || d.paused || state.drawnIds.includes(d.id))) return false;
   return true;
 }
 function drawPool(){return state.decks.filter(d => !d.paused && !d.played && matchesFilters(d))}
-function eligiblePool(){return state.decks.filter(d => !d.paused && matchesFilters(d))}
+function unplayedActive(){return state.decks.filter(d=>!d.paused&&!d.played)}
+function drawnSet(){return new Set(state.drawnIds||[])}
+function unseenPool(){const drawn=drawnSet();return drawPool().filter(d=>!drawn.has(d.id))}
+function drawStats(){
+  // Il contatore considera tutti i mazzi attivi, anche quelli con partita già
+  // registrata: una vittoria/sconfitta non deve far diminuire il totale.
+  const eligible=activeDecks();
+  const seen=drawnSet();
+  const seenCount=eligible.filter(d=>seen.has(d.id) || d.played).length;
+  return {eligible:eligible.length,seen:seenCount,remaining:eligible.length-seenCount};
+}
+function restartDrawSeries(){
+  state.drawnIds=[];
+  state.drawSeries = (Number(state.drawSeries)||1)+1;
+}
+function resetDrawsManually(){
+  if(!state.decks.length)return toast('Aggiungi prima un mazzo.');
+  if(drawingNow)return toast('Aspetta che la ruota abbia finito di girare.');
+  if(!confirm('Ricominciare le estrazioni? Non cambierà vittorie, sconfitte o giro delle partite.'))return;
+  restartDrawSeries();
+  state.selected=null;
+  state.pendingDrawId=null;
+  state.selectedManually=false;
+  $('reelText').textContent='🎲 Tocca qui per girare la ruota';
+  save();render();toast('Nuova serie di estrazioni avviata.');
+}
 function manaIcons(colors){
   const arr = (colors||'').split('').filter(Boolean);
   return arr.length ? arr.map(c=>`<span class="mana m${c}">${c}</span>`).join('') : `<span class="mana mC">C</span>`;
@@ -538,33 +933,73 @@ function hexAlpha(hex,a){
   const v = hex.replace('#','');
   const n = parseInt(v,16); const r=(n>>16)&255, g=(n>>8)&255, b=n&255; return `rgba(${r},${g},${b},${a})`;
 }
+function advanceRound(origin){
+  state.round += 1;
+  state.roundOrigin = origin;
+  // Anche i mazzi in pausa ripartiranno come disponibili quando saranno riattivati.
+  state.decks.forEach(d => { d.played = false; });
+  // Il nuovo giro partite riparte anche con una serie di estrazioni pulita.
+  state.drawnIds=[];
+  state.drawSeries=1;
+  state.pendingDrawId=null;
+  state.selected = null;
+  state.selectedManually = false;
+  $('reelText').textContent='🎲 Tocca qui per girare la ruota';
+}
 function maybeAdvanceRound(){
   const active = activeDecks();
-  if(!active.length) return false;
-  if(active.every(d => d.played)){
-    state.round += 1;
-    active.forEach(d => d.played = false);
-    toast('Nuovo giro iniziato automaticamente.');
-    return true;
+  if(!active.length || !active.every(d => d.played)) return false;
+  const last = state.history.at(-1);
+  if(last && Number(last.round||1) === state.round) last.closedRoundAutomatically = true;
+  advanceRound('auto');
+  toast('Tutti i mazzi attivi giocati: nuovo giro iniziato automaticamente.');
+  return true;
+}
+function syncPlayedWithCurrentRound(){
+  const used = new Set(state.history.filter(h => Number(h.round||1) === state.round).map(h => h.deckId));
+  state.decks.forEach(d => { d.played = used.has(d.id); });
+}
+function afterHistoryRemoval(removed){
+  // Regressione del giro SOLO se l'ultima partita lo aveva chiuso automaticamente
+  // e nel giro successivo non è ancora stata registrata alcuna partita.
+  if(removed.closedRoundAutomatically &&
+     state.roundOrigin === 'auto' &&
+     state.round === Number(removed.round||1) + 1 &&
+     !state.history.some(h => Number(h.round||1) === state.round)){
+    // Un secondo risultato manuale dello stesso mazzo può aver già completato il giro.
+    const usedBefore = new Set(state.history.filter(h => Number(h.round||1) === Number(removed.round||1)).map(h => h.deckId));
+    const stillComplete = activeDecks().length > 0 && activeDecks().every(d => usedBefore.has(d.id));
+    if(!stillComplete){
+      state.round = Number(removed.round||1);
+      state.roundOrigin = 'manual';
+    }
   }
-  return false;
+  syncPlayedWithCurrentRound();
 }
 function renderHero(){
-  const d = getDeck(state.selected);
+  const d = drawingNow ? null : getDeck(state.selected);
   const t = totalStats();
   $('sDecks').textContent = state.decks.length;
-  $('sAvailable').textContent = state.decks.filter(x=>!x.paused && !x.played).length;
+  $('sAvailable').textContent = drawStats().remaining;
   $('sGames').textContent = t.games;
   $('sRate').textContent = t.games ? `${t.rate}%` : '—';
-  $('roundInfo').textContent = `Giro ${state.round}`;
+  $('roundInfo').textContent = `Giro partite ${state.round}`;
+  const ds=drawStats();
+  const remainingLabel=ds.remaining===1 ? '1 mazzo rimasto' : ds.remaining+' mazzi rimasti';
+  $('drawProgress').textContent = ds.eligible ?
+    `🎲 Giro estrazioni ${state.drawSeries} · ${ds.seen}/${ds.eligible} selezionati · ${remainingLabel}` :
+    '🎲 Nessun mazzo attivo da estrarre';
+  $('drawProgress').classList.toggle('drawCompleted',ds.eligible>0 && ds.remaining===0);
   const hero = $('hero');
   if(!d){
-    $('heroName').textContent = 'Pronto per il prossimo giro?';
-    $('heroDesc').textContent = 'Pesca un mazzo dalla tua collezione. Quelli già giocati nel giro corrente vengono esclusi automaticamente, ma restano sempre selezionabili a mano.';
+    $('heroName').textContent = drawingNow ? '🎲 La ruota sta girando…' : 'Pronto per il prossimo giro?';
+    $('heroDesc').textContent = drawingNow ?
+      'Il mazzo estratto comparirà solo quando la roulette sarà ferma.' :
+      'Tocca la roulette qui sotto per scoprire il prossimo mazzo.';
     $('heroColors').innerHTML = '<span class="tag">Nessun colore</span>';
     $('heroBracket').textContent = 'Bracket —';
     $('heroFormat').textContent = 'Formato —';
-    $('heroStatus').textContent = 'Nessun mazzo selezionato';
+    $('heroStatus').textContent = drawingNow ? 'Estrazione in corso' : 'Nessun mazzo estratto';
     $('heroArt').classList.add('hide'); $('heroArt').removeAttribute('src');
     hero.style.setProperty('--deck-bg', deckGradient('C'));
     return;
@@ -575,9 +1010,11 @@ function renderHero(){
   $('heroColors').innerHTML = manaIcons(d.colors);
   $('heroBracket').textContent = `Bracket ${d.bracket || '—'}`;
   $('heroFormat').textContent = d.format || 'Commander';
-  $('heroStatus').textContent = d.paused ? 'In pausa (selezionato manualmente)' : d.played ? 'Già usato nel giro' : 'Disponibile';
+  $('heroStatus').textContent = d.paused ? 'In pausa (selezionato manualmente)' :
+    d.played ? 'Partita già registrata nel giro' :
+    state.drawnIds.includes(d.id) ? 'Già estratto nella serie' : 'Disponibile';
   hero.style.setProperty('--deck-bg', deckGradient(d.colors));
-  if(d.image){$('heroArt').src=d.image; $('heroArt').classList.remove('hide')} else {$('heroArt').classList.add('hide'); $('heroArt').removeAttribute('src')}
+  if(chosenArt(d)){$('heroArt').src=chosenArt(d); $('heroArt').classList.remove('hide')} else {$('heroArt').classList.add('hide'); $('heroArt').removeAttribute('src')}
 }
 function renderDeckList(){
   const list = $('deckList');
@@ -585,52 +1022,85 @@ function renderDeckList(){
   if(!decks.length){list.innerHTML = `<div class="empty">Nessun mazzo da mostrare con i filtri attivi.</div>`;return}
   list.innerHTML = decks.map(d=>{
     const s = deckStats(d);
-    const tags = [d.bracket?`<span class="tag">Bracket ${d.bracket}</span>`:'', d.format?`<span class="tag">${d.format}</span>`:'', d.paused?`<span class="tag" style="color:var(--red)">In pausa</span>`:'', d.played?`<span class="tag" style="color:var(--gold)">Giocato</span>`:`<span class="tag" style="color:var(--green)">Disponibile</span>`].join('');
+    const tags = [d.bracket?`<span class="tag">Bracket ${escapeHtml(d.bracket)}</span>`:'', d.format?`<span class="tag">${escapeHtml(d.format)}</span>`:'', d.paused?`<span class="tag" style="color:var(--red)">In pausa</span>`:'', d.played?`<span class="tag" style="color:var(--gold)">Partita registrata</span>`:
+      state.drawnIds.includes(d.id)?`<span class="tag" style="color:var(--gold)">Già estratto</span>`:
+      `<span class="tag" style="color:var(--green)">Da estrarre</span>`].join('');
     return `<div class="deckCard ${d.played?'played':''} ${d.paused?'paused':''}">
-      <img class="deckThumb" src="${d.image || ''}" alt="" onerror="this.removeAttribute('src')">
+      <img class="deckThumb" src="${escapeHtml(chosenArt(d))}" alt="" onerror="this.removeAttribute('src')">
       <div class="deckInfo">
         <div class="deckName">${escapeHtml(d.name)}</div>
         <div class="deckMeta">${manaIcons(d.colors)} ${tags}</div>
         <div class="miniStat">${s.games} partite · ${s.wins}W / ${s.losses}L · ${s.games ? s.rate+'%' : '—'} win rate</div>
       </div>
       <div class="deckActions">
-        <button class="miniBtn" data-action="choose" data-id="${d.id}">Usa</button>
         <button class="miniBtn" data-action="pause" data-id="${d.id}">${d.paused?'Riattiva':'Pausa'}</button>
         <button class="miniBtn" data-action="edit" data-id="${d.id}">Scheda</button>
+        <button class="miniBtn" data-action="list" data-id="${d.id}">Lista</button>
       </div>
     </div>`
   }).join('');
 }
 function renderHistory(){
   const box = $('history');
-  const items = [...state.history].sort((a,b)=>new Date(b.at)-new Date(a.at));
-  if(!items.length){box.innerHTML = `<div class="empty">Nessuna partita registrata.</div>`; return}
-  box.innerHTML = items.slice(0,60).map(h=>`<div class="timeCard">
+  const items = [...state.history].sort((a,b) => new Date(b.at) - new Date(a.at));
+  const shown = items.slice(0, historyVisibleCount);
+  $('historyCount').textContent = items.length ? `Visualizzate ${shown.length} di ${items.length} partite` : '';
+  $('historyMoreBtn').classList.toggle('hide', shown.length >= items.length);
+  if(!items.length){ box.innerHTML = `<div class="empty">Nessuna partita registrata.</div>`; return; }
+  box.innerHTML = shown.map(h=>`<div class="timeCard">
     <div>
       <div class="timeTitle">${escapeHtml(h.name)} <span class="${h.result==='win'?'resultWin':'resultLoss'}">${h.result==='win'?'Vittoria':'Sconfitta'}</span></div>
-      <div class="timeMeta">${formatDate(h.at)} · Giro ${h.round || 1}${h.override ? ' · scelto manualmente' : ''}</div>
+      <div class="timeMeta">${formatDate(h.at)} · Giro ${escapeHtml(h.round || 1)}${h.override ? ' · scelto manualmente' : ''}${getDeck(h.deckId) ? '' : ' · mazzo eliminato'}</div>
       ${h.opponents ? `<div class="timeMeta">Avversari: ${escapeHtml(h.opponents)}</div>` : ''}
       ${h.enemy ? `<div class="timeMeta">Comandanti affrontati: ${escapeHtml(h.enemy)}</div>` : ''}
       ${h.notes ? `<div class="timeMeta">Note: ${escapeHtml(h.notes)}</div>` : ''}
+      ${h.problems ? `<div class="timeMeta">Difficoltà: ${escapeHtml(h.problems)}</div>` : ''}
+      ${h.deckVersion ? `<div class="timeMeta">Versione: ${escapeHtml(new Date(h.deckVersion).toLocaleDateString('it-IT'))}</div>` : ''}
+      <div class="historyActions"><button class="miniBtn" type="button" data-history-action="edit" data-history-id="${escapeHtml(h.id)}">Correggi</button></div>
     </div>
     <div class="${h.result==='win'?'resultWin':'resultLoss'}">${h.result==='win'?'🏆':'💀'}</div>
   </div>`).join('');
 }
 function renderRanking(){
   const box = $('ranking');
-  if(!state.decks.length){box.innerHTML = `<div class="empty">Aggiungi dei mazzi per vedere la classifica.</div>`;return}
-  const rows = state.decks.map(d=>({d,...deckStats(d)})).sort((a,b)=> (b.games?b.rate:-1) - (a.games?a.rate:-1) || b.games-a.games || a.d.name.localeCompare(b.d.name));
-  box.innerHTML = rows.slice(0,10).map(r=>`<div class="rankRow">
-    <div>${escapeHtml(r.d.name)}</div>
-    <div class="track"><span style="width:${Math.max(r.games? r.rate : 0, 3)}%"></span></div>
+  const rows = state.decks.map(d => ({name:d.name, ...deckStats(d), deleted:false}));
+  const deleted = new Map();
+  state.history.forEach(h => {
+    if(getDeck(h.deckId)) return;
+    const id = h.deckId || 'name:' + h.name;
+    if(!deleted.has(id)) deleted.set(id, {name:h.name || 'Mazzo eliminato',games:0,wins:0,losses:0,deleted:true});
+    const item = deleted.get(id);
+    item.games++;
+    if(h.result === 'win') item.wins++; else item.losses++;
+  });
+  deleted.forEach(item => { item.rate = item.games ? Math.round(item.wins / item.games * 100) : 0; rows.push(item); });
+  if(!rows.length){box.innerHTML = `<div class="empty">Aggiungi dei mazzi per vedere la classifica.</div>`;return}
+  rows.sort((a,b) => (b.games?b.rate:-1) - (a.games?a.rate:-1) || b.games - a.games || a.name.localeCompare(b.name));
+  box.innerHTML = rows.map(r=>`<div class="rankRow">
+    <div>${escapeHtml(r.name)}${r.deleted ? ' <span class="timeMeta">(eliminato)</span>' : ''}</div>
+    <div class="track"><span style="width:${Math.max(r.games ? r.rate : 0, 3)}%"></span></div>
     <div>${r.games ? `${r.rate}% · ${r.games}` : '—'}</div>
   </div>`).join('');
 }
 function renderMonths(){
   const box = $('months');
+  const select = $('monthsYear');
+  const today = new Date().getFullYear();
+  const years = [...new Set([today, ...state.history.map(h => new Date(h.at).getFullYear()).filter(Number.isInteger)])].sort((a,b)=>b-a);
+  if(selectedMonthYear == null || !years.includes(selectedMonthYear)){
+    selectedMonthYear = years.includes(today) ? today : years[0];
+  }
+  select.innerHTML = years.map(y => `<option value="${y}">${y}</option>`).join('');
+  select.value = String(selectedMonthYear);
   const monthNames = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
   const map = Array.from({length:12},(_,i)=>({i,w:0,l:0}));
-  state.history.forEach(h=>{const d=new Date(h.at); if(!isNaN(d)){const m=map[d.getMonth()]; h.result==='win'?m.w++:m.l++}});
+  state.history.forEach(h => {
+    const date = new Date(h.at);
+    if(!isNaN(date) && date.getFullYear() === selectedMonthYear){
+      const month = map[date.getMonth()];
+      if(h.result === 'win') month.w++; else month.l++;
+    }
+  });
   box.innerHTML = map.map(m=>`<div class="monthBox"><b>${monthNames[m.i]}</b>${m.w}W · ${m.l}L</div>`).join('');
 }
 function render(){
@@ -640,6 +1110,7 @@ function render(){
   $('filterColor').value = state.filters.color || '';
   $('filterBracket').value = state.filters.bracket || '';
   renderHero(); renderDeckList(); renderHistory(); renderRanking(); renderMonths(); save();
+  if(document.body.dataset.activeTab==='analysis') window.DeckCycleExtras?.renderAnalysis();
 }
 function escapeHtml(str){return String(str||'').replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
 function openModal(id){$(id).classList.add('open')}
@@ -647,15 +1118,32 @@ function closeModal(id){$(id).classList.remove('open')}
 
 async function fetchCommanderArt(deck, notify=false){
   const query = encodeURIComponent(deck.commander || deck.name);
+  // Una stampa scelta manualmente deve rimanere selezionata, anche se
+  // era già in corso una richiesta automatica a Scryfall.
+  if(!notify && (deck.artLocked || deck.customArt)) return;
   try{
     const res = await fetch(`https://api.scryfall.com/cards/named?fuzzy=${query}`, {headers:{accept:'application/json'}});
     if(!res.ok) throw new Error('not-found');
     const card = await res.json();
+    if(!notify && (deck.artLocked || deck.customArt)) return;
     const face = card.card_faces?.[0];
-    deck.image = card.image_uris?.art_crop || face?.image_uris?.art_crop || card.image_uris?.normal || face?.image_uris?.normal || '';
+    const image = card.image_uris?.art_crop || face?.image_uris?.art_crop ||
+      card.image_uris?.normal || face?.image_uris?.normal || '';
+    if(notify){
+      if(deck.customArt){
+        window.DeckCycleExtras?.artCache.delete(deck.id);
+        window.DeckCycleArchive.removeArtwork(deck.id).catch(error =>
+          console.warn('DeckCycle: pulizia vecchio artwork non riuscita:',error.message));
+      }
+      deck.customArt = false;
+      deck.artLocked = false;
+    }
+    deck.image = image;
     deck.artist = card.artist || face?.artist || '';
     if(!deck.colors) deck.colors = normalizeColors((card.color_identity||[]).join(''));
-    save(); render(); if(notify) toast('Artwork aggiornato da Scryfall.');
+    save(); render();
+    if(editId === deck.id) renderEditPreview(deck);
+    if(notify) toast('Artwork aggiornato da Scryfall.');
   }catch(err){ if(notify) toast('Non sono riuscito a recuperare l’artwork da Scryfall.'); }
 }
 function addDeckFromForm(e){
@@ -670,47 +1158,84 @@ function addDeckFromForm(e){
 }
 function ensureRoundForDraw(){
   if(drawPool().length) return true;
-  const eligible = eligiblePool();
-  if(eligible.length && eligible.every(d=>d.played)){
-    state.round += 1;
-    state.decks.forEach(d=>{ if(!d.paused) d.played = false; });
+  const active = activeDecks();
+  // Con i filtri non è mai lecito ricominciare se esiste ancora un mazzo
+  // attivo non giocato, anche quando è temporaneamente nascosto.
+  if(active.length && active.every(d => d.played)){
+    advanceRound('auto');
     save(); render();
-    toast('Tutti i mazzi attivi sono stati giocati: nuovo giro iniziato.');
-    return true;
+    toast('Nuovo giro: tutti i mazzi attivi erano già stati giocati.');
   }
   return drawPool().length > 0;
 }
+let drawingNow = false;
 async function animateDraw(){
+  if(drawingNow) return;
   if(!state.decks.length) return toast('Aggiungi prima almeno un mazzo.');
   if(!ensureRoundForDraw()) return toast('Nessun mazzo disponibile con i filtri attivi.');
-  const pool = drawPool();
-  if(!pool.length) return toast('Nessun mazzo disponibile con i filtri attivi.');
-  const reel = $('reelText');
-  reel.classList.add('roll');
-  const names = pool.map(d=>d.name);
-  let ticks = 0;
-  await new Promise(resolve=>{
-    const iv = setInterval(()=>{reel.textContent = names[Math.floor(Math.random()*names.length)]; ticks++; if(ticks > 16){clearInterval(iv); resolve();}}, 95);
-  });
-  const selected = pool[Math.floor(Math.random()*pool.length)];
-  reel.classList.remove('roll');
-  reel.textContent = selected.name;
-  state.selected = selected.id;
-  renderHero();
-  $('hero').classList.remove('reveal'); void $('hero').offsetWidth; $('hero').classList.add('reveal');
-  save(); render();
+  let pool=unseenPool();
+  if(!pool.length){
+    const ds=drawStats();
+    // Non ricominciare automaticamente se i filtri nascondono mazzi ancora da estrarre.
+    if(ds.remaining>0){
+      return toast('I mazzi visibili sono già stati estratti. Cambia o togli i filtri per vedere quelli rimasti.');
+    }
+    if(ds.eligible===0)return toast('Nessun mazzo attivo ancora da giocare in questo giro.');
+    restartDrawSeries();
+    pool=unseenPool();
+    toast('Tutti i mazzi erano stati estratti: inizia una nuova serie!');
+  }
+  if(!pool.length) return toast('Nessun mazzo da pescare.');
+  const selected=pool[Math.floor(Math.random()*pool.length)];
+  // Riserva l'esito prima dell'animazione per evitare ripetizioni, ma non
+  // mostrarlo né selezionarlo nel quadrante finché il rullo non si ferma.
+  const previousDrawn=[...state.drawnIds],previousSelected=state.selected;
+  if(!state.drawnIds.includes(selected.id))state.drawnIds.push(selected.id);
+  state.pendingDrawId=selected.id;
+  state.selected=null;
+  state.selectedManually=false;
+  if(!save()){
+    state.drawnIds=previousDrawn;state.selected=previousSelected;state.pendingDrawId=null;
+    return toast('Estrazione non salvata: verifica la memoria del browser.');
+  }
+  drawingNow=true;
+  $('spinReelBtn').setAttribute('aria-disabled','true');
+  $('winBtn').disabled=true;
+  $('lossBtn').disabled=true;
+  renderHero(); // quadrante superiore nascosto durante tutta la roulette
+  renderDeckList();
+  try{
+    if(window.DeckCycleExtras) await window.DeckCycleExtras.animateReel(pool,selected);
+    else $('reelText').textContent=selected.name;
+  }catch(error){
+    $('reelText').textContent=selected.name;
+    toast('Animazione interrotta: estrazione conservata.');
+  }finally{
+    state.selected=selected.id;
+    state.pendingDrawId=null;
+    drawingNow=false;
+    $('spinReelBtn').removeAttribute('aria-disabled');
+    $('winBtn').disabled=false;
+    $('lossBtn').disabled=false;
+    save();
+    render(); // il nome e l'artwork compaiono SOLO ad animazione conclusa
+    $('hero').classList.remove('reveal');
+    void $('hero').offsetWidth;
+    $('hero').classList.add('reveal');
+    // Dopo che la ruota si è fermata, porta il risultato superiore in vista.
+    $('hero').scrollIntoView?.({behavior:'smooth',block:'start'});
+  }
 }
 function openRecord(result){
   const d = getDeck(state.selected);
-  if(!d) return toast('Seleziona o pesca prima un mazzo.');
+  if(drawingNow || !d) return toast('Gira la ruota e attendi che si fermi prima di registrare una partita.');
   pendingResult = result;
   $('recordTitle').textContent = result === 'win' ? 'Registra vittoria' : 'Registra sconfitta';
   $('recordDeckName').textContent = d.name;
   $('recordDeckTags').innerHTML = `${manaIcons(d.colors)}<span class="tag">${d.format || 'Commander'}</span><span class="tag">Bracket ${d.bracket||'—'}</span>`;
-  if(d.image){$('recordArt').src = d.image; $('recordArt').classList.remove('hide')} else {$('recordArt').classList.add('hide')}
-  $('recordOpponents').value = '';
-  $('recordEnemy').value = '';
+  if(chosenArt(d)){$('recordArt').src = chosenArt(d); $('recordArt').classList.remove('hide')} else {$('recordArt').classList.add('hide')}
   $('recordNotes').value = '';
+  window.DeckCycleExtras?.prepareOpponents();
   openModal('recordModal');
 }
 function confetti(){
@@ -732,14 +1257,28 @@ function showGlow(id){const el=$(id); el.classList.remove('show'); void el.offse
 function registerResult(){
   const d = getDeck(state.selected);
   if(!d || !pendingResult) return;
-  const override = d.played || d.paused;
-  state.history.push({id:uid(), deckId:d.id, name:d.name, round:state.round, at:new Date().toISOString(), result:pendingResult, override, opponents:$('recordOpponents').value.trim(), enemy:$('recordEnemy').value.trim(), notes:$('recordNotes').value.trim()});
+  const override = !!state.selectedManually || d.played || d.paused;
+  const opponents = window.DeckCycleExtras?.collectOpponents() || [];
+  window.DeckCycleExtras?.rememberOpponents(opponents);
+  state.history.push({
+    id:uid(), deckId:d.id, name:d.name, round:state.round, at:new Date().toISOString(),
+    result:pendingResult, override,
+    deckVersion:d.versionTag||'',
+    opponents:opponents.map(x=>x.name).filter(Boolean).join(', '),
+    enemy:opponents.map(x=>x.commander).filter(Boolean).join(', '),
+    opponentCommanders:opponents,
+    notes:$('recordNotes').value.trim(),
+    problems:$('recordProblems').value.trim()
+  });
   d.played = true;
+  if(!state.drawnIds.includes(d.id))state.drawnIds.push(d.id);
   closeModal('recordModal');
   if(pendingResult === 'win'){confetti(); showGlow('winGlow'); toast('🏆 Vittoria registrata!');}
   else{$('hero').classList.add('shake'); setTimeout(()=>$('hero').classList.remove('shake'), 500); showGlow('lossGlow'); toast('💀 Sconfitta registrata.');}
   pendingResult = null;
   state.selected = null;
+  state.selectedManually = false;
+  $('reelText').textContent='🎲 Tocca qui per girare la ruota';
   maybeAdvanceRound();
   save(); render();
 }
@@ -752,11 +1291,13 @@ function renderEditPreview(d){
   $('editPreviewName').textContent = d.name;
   $('editPreviewTags').innerHTML = `${manaIcons(d.colors)}<span class="tag">${d.format || 'Commander'}</span><span class="tag">Bracket ${d.bracket || '—'}</span><span class="tag">${d.paused ? 'In pausa' : 'Attivo'}</span>`;
   const s = deckStats(d); $('editStats').textContent = `${s.games} partite · ${s.wins} vittorie · ${s.losses} sconfitte · ${s.games ? s.rate+'% win rate' : 'nessun risultato'}`;
-  $('editArtist').textContent = d.artist ? `Artista: ${d.artist} · © Wizards of the Coast` : '';
+  $('editArtist').textContent = d.artist ?
+    (d.customArt || d.artist === 'Artwork da URL' ?
+      `Artwork: ${d.artist}` : `Artista: ${d.artist}`) : '';
   $('togglePauseBtn').textContent = d.paused ? 'Riattiva' : 'Metti in pausa';
   $('editMoxfieldLink').classList.toggle('hide', !/^https?:\/\//i.test(d.moxfield));
   $('editMoxfieldLink').href = d.moxfield || '#';
-  if(d.image){$('editArt').src=d.image; $('editArt').classList.remove('hide')} else {$('editArt').classList.add('hide')}
+  if(chosenArt(d)){$('editArt').src=chosenArt(d); $('editArt').classList.remove('hide')} else {$('editArt').classList.add('hide')}
 }
 function saveEdit(){
   const d = getDeck(editId); if(!d) return;
@@ -777,50 +1318,128 @@ function saveEdit(){
 function deleteDeck(){
   const d = getDeck(editId); if(!d) return;
   if(!confirm(`Eliminare il mazzo “${d.name}”?`)) return;
+  if(!window.DeckCycleSafe.checkpoint(KEY, 'Prima di eliminare il mazzo', true, true)) return;
   state.decks = state.decks.filter(x=>x.id!==d.id);
-  if(state.selected===d.id) state.selected = null;
+  if(state.selected===d.id){ state.selected = null; state.selectedManually = false; }
   save(); render(); closeModal('editModal'); toast('Mazzo eliminato.');
 }
 function togglePauseCurrent(){ const d=getDeck(editId); if(!d) return; d.paused=!d.paused; save(); render(); renderEditPreview(d); }
 function newRound(){
+  if(drawingNow)return toast('Aspetta che la ruota abbia finito di girare.');
   if(!state.decks.length) return;
   if(!confirm('Vuoi iniziare un nuovo giro? Le statistiche restano salvate.')) return;
-  state.round += 1; state.decks.forEach(d=>{if(!d.paused)d.played=false}); state.selected=null; save(); render(); toast('Nuovo giro avviato.');
+  advanceRound('manual'); save(); render(); toast('Nuovo giro avviato.');
+}
+function openHistoryEdit(id){
+  const h = state.history.find(x => x.id === id);
+  if(!h) return toast('Partita non trovata.');
+  editingHistoryId = id;
+  $('historyEditDeck').textContent = `${h.name} · ${formatDate(h.at)} · Giro ${h.round || 1}`;
+  $('historyEditResult').value = h.result;
+  $('historyEditOpponents').value = h.opponents || '';
+  $('historyEditEnemy').value = h.enemy || '';
+  $('historyEditNotes').value = h.notes || '';
+  openModal('historyEditModal');
+}
+function saveHistoryEdit(){
+  const h = state.history.find(x => x.id === editingHistoryId);
+  if(!h) return toast('Partita non trovata.');
+  if(!window.DeckCycleSafe.checkpoint(KEY, 'Prima di correggere una partita', true, true)) return;
+  h.result = $('historyEditResult').value === 'win' ? 'win' : 'loss';
+  h.opponents = $('historyEditOpponents').value.trim();
+  h.enemy = $('historyEditEnemy').value.trim();
+  h.notes = $('historyEditNotes').value.trim();
+  if(!save()) return;
+  closeModal('historyEditModal');
+  editingHistoryId = null;
+  render();
+  toast('Partita corretta. Statistiche aggiornate.');
+}
+function removeHistory(h){
+  if(!h) return toast('Partita non trovata.');
+  if(!confirm(`Eliminare il risultato di “${h.name}” del ${formatDate(h.at)}?`)) return;
+  if(!window.DeckCycleSafe.checkpoint(KEY, 'Prima di eliminare una partita', true, true)) return;
+  state.history = state.history.filter(x => x.id !== h.id);
+  afterHistoryRemoval(h);
+  if(!save()) return;
+  closeModal('historyEditModal');
+  editingHistoryId = null;
+  render();
+  toast('Partita eliminata. Giro e statistiche aggiornati.');
 }
 function undoLast(){
-  const h = state.history.at(-1); if(!h) return toast('Nessun risultato da annullare.');
-  if(!confirm(`Annullare l'ultimo risultato di ${h.name}?`)) return;
-  state.history.pop();
-  const d = getDeck(h.deckId);
-  if(d){
-    const stillInRound = state.history.some(x=>x.deckId===h.deckId && x.round===h.round);
-    if(!stillInRound && h.round===state.round) d.played=false;
-  }
-  save(); render(); toast('Ultimo risultato annullato.');
+  const h = state.history.at(-1);
+  if(!h) return toast('Nessun risultato da annullare.');
+  removeHistory(h);
 }
 function exportData(){
-  const blob = new Blob([JSON.stringify({app:'DeckCycle Deluxe', version:4, data:state}, null, 2)], {type:'application/json'});
-  const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href=url; a.download='deckcycle-deluxe-backup.json'; a.click(); setTimeout(()=>URL.revokeObjectURL(url), 1200);
+  const archive = window.DeckCycleArchive.readyExport();
+  if(!archive){
+    if(archiveBackupError){
+      if(confirm('Archivio liste non disponibile: ' + archiveBackupError +
+        '. Vuoi esportare SOLO mazzi e statistiche, SENZA le liste delle carte?')){
+        window.DeckCycleSafe.exportData(state);
+      }
+    }else{
+      toast('Sto preparando il backup delle liste. Riprova Esporta fra un momento.');
+      warmArchiveBackup();
+    }
+    return;
+  }
+  // Chiamata sincrona dal clic: mantiene il permesso per il menu Condividi iOS.
+  window.DeckCycleSafe.exportData(state, archive);
 }
 function importData(file){
-  file.text().then(txt=>{
-    const parsed = JSON.parse(txt);
-    const incoming = parsed.data || parsed;
-    if(!incoming || !Array.isArray(incoming.decks) || !Array.isArray(incoming.history)) throw new Error('Struttura backup non valida');
-    state = {...DEFAULT_STATE, ...incoming};
-    state.decks = incoming.decks.map(normalizeDeck); state.filters = {...DEFAULT_STATE.filters}; if(!['magic','dark','light'].includes(state.theme)) state.theme='magic';
-    save(); render(); toast('Backup importato correttamente.');
-  }).catch(err=>toast('Importazione fallita: '+err.message));
+  window.DeckCycleSafe.importData(file, {
+    key: KEY, defaults: DEFAULT_STATE, normalizeDeck, uid,
+    validateExtra(wrapper){
+      if(wrapper && wrapper.archive) window.DeckCycleArchive.validateBackupArchive(wrapper.archive);
+    },
+    async afterSave(wrapper, next){
+      if(wrapper && wrapper.archive){
+        await window.DeckCycleArchive.importAll(wrapper.archive);
+      }
+    },
+    onSuccess(next){
+      state = next;
+      if(!Array.isArray(state.drawnIds))state.drawnIds=[];
+      state.drawnIds=state.drawnIds.filter(id=>state.decks.some(d=>d.id===id));
+      state.drawSeries=Number.isInteger(state.drawSeries)&&state.drawSeries>0?state.drawSeries:1;
+      if(!Array.isArray(state.opponentGroups))state.opponentGroups=[];
+      if(!Array.isArray(state.opponents))state.opponents=[];
+      state.pendingDrawId=null;
+      window.DeckCycleExtras?.onRosterImported?.();
+      render();
+      toast('Backup importato correttamente, incluse le liste se presenti.');
+      warmArchiveBackup();
+      window.DeckCycleExtras?.hydrateArtworks();
+      window.DeckCycleExtras?.hydrateAvatar?.();
+    }
+  });
 }
 
 $('addForm').addEventListener('submit', addDeckFromForm);
-$('drawBtn').addEventListener('click', animateDraw);
-$('rerollBtn').addEventListener('click', animateDraw);
+$('spinReelBtn').addEventListener('click', animateDraw);
+$('spinReelBtn').addEventListener('keydown', e=>{
+  if(e.key==='Enter'||e.key===' '){e.preventDefault();animateDraw();}
+});
 $('winBtn').addEventListener('click', ()=>openRecord('win'));
 $('lossBtn').addEventListener('click', ()=>openRecord('loss'));
 $('recordConfirmBtn').addEventListener('click', registerResult);
 $('newRoundBtn').addEventListener('click', newRound);
+$('resetDrawBtn').addEventListener('click', resetDrawsManually);
 $('undoBtn').addEventListener('click', undoLast);
+$('historyMoreBtn').addEventListener('click', ()=>{historyVisibleCount += 60; renderHistory()});
+$('monthsYear').addEventListener('change', e=>{selectedMonthYear=Number(e.target.value); renderMonths()});
+$('history').addEventListener('click', e=>{
+  const button = e.target.closest('[data-history-action="edit"]');
+  if(button) openHistoryEdit(button.dataset.historyId);
+});
+$('historySaveBtn').addEventListener('click', saveHistoryEdit);
+$('historyDeleteBtn').addEventListener('click', ()=>{
+  const h = state.history.find(x=>x.id===editingHistoryId);
+  removeHistory(h);
+});
 $('theme').addEventListener('change', e=>{state.theme=e.target.value; save(); render()});
 $('search').addEventListener('input', e=>{state.filters.q=e.target.value; render()});
 $('filterColor').addEventListener('change', e=>{state.filters.color=e.target.value; render()});
@@ -829,14 +1448,20 @@ $('onlyAvailableBtn').addEventListener('click', ()=>{state.filters.only=!state.f
 $('deckList').addEventListener('click', e=>{
   const btn = e.target.closest('[data-action]'); if(!btn) return;
   const {action,id} = btn.dataset; const d = getDeck(id); if(!d) return;
-  if(action==='choose'){state.selected=id; save(); render(); toast(`Selezionato: ${d.name}`); window.scrollTo({top:0, behavior:'smooth'});}
   if(action==='pause'){d.paused=!d.paused; save(); render(); toast(d.paused ? 'Mazzo messo in pausa.' : 'Mazzo riattivato.');}
   if(action==='edit'){openEdit(id)}
+  if(action==='list'){window.DeckCycleArchiveUI.open(d)}
 });
 $('saveEditBtn').addEventListener('click', saveEdit);
 $('deleteDeckBtn').addEventListener('click', deleteDeck);
 $('togglePauseBtn').addEventListener('click', togglePauseCurrent);
 $('refreshArtBtn').addEventListener('click', ()=>{const d=getDeck(editId); if(!d) return; d.commander=$('editCommander').value.trim()||d.name; d.name=$('editName').value.trim()||d.name; d.colors=''; fetchCommanderArt(d,true); renderEditPreview(d)});
+$('openDeckListBtn').addEventListener('click', ()=>{
+  const d = getDeck(editId);
+  if(!d) return;
+  closeModal('editModal');
+  window.DeckCycleArchiveUI.open(d);
+});
 $('exportBtn').addEventListener('click', exportData);
 $('importBtn').addEventListener('click', ()=>$('importFile').click());
 $('importFile').addEventListener('change', e=>{const f=e.target.files?.[0]; if(f) importData(f); e.target.value=''});
@@ -847,12 +1472,36 @@ document.querySelectorAll('.modalBg').forEach(bg=>bg.addEventListener('click', e
 document.addEventListener('keydown', e=>{if(e.key==='Escape') document.querySelectorAll('.modalBg.open').forEach(el=>closeModal(el.id))});
 
 applyTheme(); render();
+window.DeckCycleSafe.installCopiesButton(KEY);
+window.DeckCycleArchiveUI.init();
+window.DeckCycleScryCheck.init();
+window.DeckCycleArchive.saveBaseline(state).catch(error => console.warn('DeckCycle: copia di migrazione IndexedDB non disponibile:', error.message));
+warmArchiveBackup();
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState === 'visible') warmArchiveBackup();
+});
+window.DeckCycleApp={
+  getState:()=>state,
+  getDeck,
+  getEditingDeckId:()=>editId,
+  save,render,toast,
+  refreshDeckPreview(deckId){
+    if(editId === deckId){
+      const deck=getDeck(deckId);
+      if(deck) renderEditPreview(deck);
+    }
+  },
+  onListSaved(deckId,at){
+    const deck=getDeck(deckId);
+    if(!deck)return;
+    deck.versionTag=at;
+    save();
+    if(document.body.dataset.activeTab==='analysis')window.DeckCycleExtras?.renderAnalysis();
+  }
+};
 })();
 </script>
-<script>
-if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
-  window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(()=>{}));
-}
-</script>
+<script src="./features.js"></script>
+<script src="./pwa.js"></script>
 </body>
 </html>

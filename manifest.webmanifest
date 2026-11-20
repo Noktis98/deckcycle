@@ -1,13 +1,31 @@
 {
   "name": "DeckCycle Deluxe",
   "short_name": "DeckCycle",
+  "description": "Rotazione intelligente e statistiche dei mazzi Magic: The Gathering Commander.",
+  "lang": "it",
+  "id": "./index.html",
   "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#120f1e",
   "theme_color": "#120f1e",
   "icons": [
-    {"src": "./icon-180.png", "sizes": "180x180", "type": "image/png"},
-    {"src": "./icon-192.png", "sizes": "192x192", "type": "image/png"},
-    {"src": "./icon-512.png", "sizes": "512x512", "type": "image/png"}
+    {
+      "src": "./icon-180.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    },
+    {
+      "src": "./icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
   ]
 }
