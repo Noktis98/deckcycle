@@ -496,8 +496,9 @@
       const url=await imageToDataUrl(file);
       await archive().setArtwork(AVATAR_ID,url,'Foto profilo DeckCycle');
       displayAvatar(url);avatarStatus('Foto profilo aggiornata e inclusa nel backup JSON.');
+      app().toast('Foto profilo aggiornata.');
       archive().warmExport().catch(()=>{});
-    }catch(e){avatarStatus('Immagine non salvata: '+e.message)}
+    }catch(e){avatarStatus('Immagine non salvata: '+e.message);app().toast('Foto non salvata: '+e.message)}
   }
   async function removeAvatar(){
     try{
