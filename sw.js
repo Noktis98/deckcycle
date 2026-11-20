@@ -1,6 +1,6 @@
 /* DeckCycle — Fase 2: cache offline coerente e aggiornamenti su richiesta.
    Non intercettare Scryfall o risorse esterne; non cancellare i dati del browser. */
-const CACHE_NAME = 'deckcycle-complete-rc1-v3-art-vertical';
+const CACHE_NAME = 'deckcycle-complete-rc1-v4-no-repeat';
 const CORE_ASSETS = ['index.html', 'safeguards.js', 'pwa.js', 'archive.js', 'archive-ui.js', 'features.js', 'manifest.webmanifest'];
 const ICON_ASSETS = ['icon-180.png', 'icon-192.png', 'icon-512.png'];
 const KNOWN_ASSETS = new Set([...CORE_ASSETS, ...ICON_ASSETS]);
