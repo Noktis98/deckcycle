@@ -20,6 +20,18 @@
 - [ ] Seleziona manualmente un mazzo già giocato o in pausa: deve restare registrabile.
 - [ ] Il carosello deve fermarsi sul mazzo realmente selezionato. La scelta deve essere casuale prima dell'animazione.
 
+## B2. Estrazioni senza doppioni e icona iPhone
+
+- [ ] Con almeno tre mazzi attivi, esegui tre estrazioni senza registrare vittorie o sconfitte: devono uscire tre mazzi differenti.
+- [ ] Il conteggio «Serie estrazioni 1 · 3 estratti su 3 · 0 da pescare» deve arrivare a zero.
+- [ ] Alla quarta estrazione deve iniziare la **Serie estrazioni 2**, ma il «Giro partite» resta invariato.
+- [ ] Registra una vittoria o sconfitta: soltanto allora il mazzo risulta giocato nel giro delle partite.
+- [ ] Se filtri un sottoinsieme di mazzi già estratti, DeckCycle deve invitare a togliere i filtri, non sorteggiarli nuovamente in silenzio.
+- [ ] «Ricomincia estrazioni» azzera solamente la lista delle pescate e non modifica statistiche e storico.
+- [ ] Verifica sulla Preview Netlify che `/apple-touch-icon.png` sia l'immagine corretta delle carte dorate.
+- [ ] Verifica che il build Netlify generi anche `icon-192.png` e `icon-512.png` dalle nuove icone: `netlify.toml` esegue `scripts/build-icons.cjs`.
+- [ ] Prima di rimuovere una PWA installata per aggiornare l'icona della Home, esporta e verifica un backup esterno. Un aggiornamento del codice non richiede di reinstallare l'app.
+
 ## C. Archivio e versioni
 
 - [ ] In Mazzi premi **Lista** e incolla una lista Moxfield completa (comandante + 99 carte).
