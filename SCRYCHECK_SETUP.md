@@ -32,6 +32,18 @@ Non scrivere nessuno dei valori nel codice. Dopo averle salvate, avvia un **nuov
 
 Il codice personale viene richiesto all'interno di DeckCycle; non devi mai digitare la chiave API nell'app. Dopo una richiesta riuscita il codice personale è conservato **solo nella sessione Safari**, non nei backup. Limite server: 6 richieste/minuto per IP e dominio. Riduce gli abusi, ma non sostituisce autenticazione e quota globale per un servizio multiutente.
 
+## Dopo aver aggiunto le due chiavi su Netlify
+
+Le Netlify Functions leggono le variabili salvate al momento del deploy.
+Per verificare ScryCheck dopo la configurazione delle chiavi, occorre una
+**nuova build della Deploy Preview della PR #5** (non il tasto Publish della
+versione Live). Un nuovo commit su questo branch richiede normalmente a Netlify
+un nuovo deploy dell'anteprima se la distribuzione da GitHub è attiva.
+
+L'app richiede il codice personale soltanto al primo utilizzo riuscito, se
+l'opzione «Ricorda il codice su questo iPhone» rimane selezionata. La chiave
+ScryCheck non deve essere digitata nell'app.
+
 ## PASSO 2 — Prova sull'app di anteprima
 
 1. Esporta prima un backup JSON del tuo archivio, conservandolo nell'app File o su iCloud. **Non cancellare la PWA**.
