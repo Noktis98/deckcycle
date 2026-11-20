@@ -342,7 +342,7 @@ body.deckcycle-tabs .stack:empty{display:none}
         </div>
         <div class="heroBottom">
           <div class="statBox"><div class="statLabel">Totale mazzi</div><div class="statValue" id="sDecks">0</div></div>
-          <div class="statBox"><div class="statLabel">Disponibili</div><div class="statValue" id="sAvailable">0</div></div>
+          <div class="statBox"><div class="statLabel">Da estrarre</div><div class="statValue" id="sAvailable">0</div></div>
           <div class="statBox"><div class="statLabel">Partite</div><div class="statValue" id="sGames">0</div></div>
           <div class="statBox"><div class="statLabel">Win rate</div><div class="statValue" id="sRate">—</div></div>
         </div>
@@ -352,7 +352,7 @@ body.deckcycle-tabs .stack:empty{display:none}
         <div class="sectionHeader">
           <div>
             <div class="sectionTitle">Sorteggio animato</div>
-            <div class="sectionSub">Le estrazioni non si ripetono nella stessa serie, anche senza registrare una partita. I giri delle partite e le statistiche rimangono separati.</div>
+            <div class="sectionSub">Ogni pressione di “Pesca” esclude subito il mazzo estratto. Non serve registrare vittorie o sconfitte per far avanzare il conteggio.</div>
           </div>
           <div class="row">
             <button class="pillBtn" id="newRoundBtn" type="button">Nuovo giro partite</button>
@@ -475,6 +475,7 @@ body.deckcycle-tabs .stack:empty{display:none}
         <div class="row"><button class="pillBtn" type="button" data-go-tab="decks">Apri collezione</button>
           <button class="pillBtn" type="button" data-go-tab="games">Vai allo storico</button></div>
         <p class="note">Questa è una versione di prova. Non rimuovere la PWA originale finché i backup e l'importazione non sono stati verificati su iPhone.</p>
+        <p class="note" id="deckcycleBuildVersion">Versione anteprima RC1 · 20 novembre 2026 · correzione estrazioni e icona</p>
       </section>
 
     </div>
@@ -767,7 +768,7 @@ function matchesFilters(d){
     if(wanted.length === 1 ? !d.colors.includes(wanted) : d.colors !== wanted) return false;
   }
   if(state.filters.bracket && String(d.bracket||'') !== String(state.filters.bracket)) return false;
-  if(state.filters.only && (d.played || d.paused)) return false;
+  if(state.filters.only && (d.played || d.paused || state.drawnIds.includes(d.id))) return false;
   return true;
 }
 function drawPool(){return state.decks.filter(d => !d.paused && !d.played && matchesFilters(d))}
@@ -855,7 +856,7 @@ function renderHero(){
   const d = getDeck(state.selected);
   const t = totalStats();
   $('sDecks').textContent = state.decks.length;
-  $('sAvailable').textContent = state.decks.filter(x=>!x.paused && !x.played).length;
+  $('sAvailable').textContent = drawStats().remaining;
   $('sGames').textContent = t.games;
   $('sRate').textContent = t.games ? `${t.rate}%` : '—';
   $('roundInfo').textContent = `Giro partite ${state.round}`;
@@ -1060,20 +1061,30 @@ async function animateDraw(){
   }
   if(!pool.length) return toast('Nessun mazzo da pescare.');
   const selected=pool[Math.floor(Math.random()*pool.length)];
+  // La pesca viene registrata SUBITO, prima della roulette. Anche se l'app
+  // viene chiusa o il timer iOS viene sospeso, il mazzo non potrà ricomparire.
+  state.selected=selected.id;
+  state.selectedManually=false;
+  if(!state.drawnIds.includes(selected.id))state.drawnIds.push(selected.id);
+  if(!save()) return toast('Estrazione non salvata: verifica la memoria del browser.');
   drawingNow=true;
   $('drawBtn').disabled=true;
   $('rerollBtn').disabled=true;
+  renderHero();
+  renderDeckList();
   try{
     if(window.DeckCycleExtras) await window.DeckCycleExtras.animateReel(pool,selected);
     else $('reelText').textContent=selected.name;
-    state.selected=selected.id;
-    state.selectedManually=false;
-    if(!state.drawnIds.includes(selected.id))state.drawnIds.push(selected.id);
-    renderHero();
     $('hero').classList.remove('reveal'); void $('hero').offsetWidth; $('hero').classList.add('reveal');
-    save();render();
-  }catch(error){toast('Sorteggio interrotto: '+error.message)}
-  finally{drawingNow=false;$('drawBtn').disabled=false;$('rerollBtn').disabled=false;}
+  }catch(error){
+    $('reelText').textContent=selected.name;
+    toast('Animazione interrotta: estrazione conservata.');
+  }finally{
+    drawingNow=false;
+    $('drawBtn').disabled=false;
+    $('rerollBtn').disabled=false;
+    render();
+  }
 }
 function openRecord(result){
   const d = getDeck(state.selected);
