@@ -9,6 +9,7 @@
   let running = false;
   let lastSource = 'auto';
   let notice = '';
+  let accessCode = '';
 
   const escape = value => String(value == null ? '' : value).replace(/[&<>"']/g,
     ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
@@ -134,12 +135,18 @@
     return { url, sourceLabel:'Link Moxfield/Archidekt' };
   }
   async function apiCall({method='POST',body,hash}) {
+    if (!accessCode) {
+      const code = prompt('Inserisci il codice personale DeckCycle configurato su Netlify. NON inserire qui la chiave API ScryCheck.');
+      if (!code) throw Error('Inserisci il codice personale per utilizzare ScryCheck.');
+      accessCode = code.trim();
+    }
     const url = hash ? endpoint + '?deckHash=' + encodeURIComponent(hash) : endpoint;
     let response;
     try {
       response = await fetch(url,{
         method,
-        headers:{Accept:'application/json',...(method==='POST'?{'Content-Type':'application/json'}:{})},
+        headers:{Accept:'application/json','X-DeckCycle-Access-Code':accessCode,
+          ...(method==='POST'?{'Content-Type':'application/json'}:{})},
         ...(method==='POST'?{body:JSON.stringify(body)}:{}),
         cache:'no-store'
       });
@@ -155,6 +162,7 @@
       const messages = {
         NOT_CONFIGURED:'La chiave API non è stata ancora inserita nelle variabili riservate di Netlify.',
         UNAUTHORIZED:'La chiave non è valida o è stata revocata. Configura quella nuova su Netlify.',
+        ACCESS_DENIED:'Il codice personale è errato. Non inserire la chiave API: serve il codice SCRYCHECK_ACCESS_CODE.',
         NOT_ANALYZED:'Non esiste ancora un’analisi salvata. Premi Analizza per crearla.',
         RATE_LIMITED:'Troppe richieste. Riprova dopo l’intervallo indicato.',
         QUOTA_EXCEEDED:'Quota giornaliera ScryCheck raggiunta. Riprova dopo il reset.',
@@ -163,6 +171,7 @@
         ANALYSIS_FAILED:'ScryCheck non ha completato l’analisi.'
       };
       const retryAfter = response.headers.get('retry-after');
+      if(key==='ACCESS_DENIED')accessCode='';
       throw Error((messages[key] || result?.error?.message || 'Servizio non disponibile.') +
         (retryAfter && /^[0-9]{1,5}$/.test(retryAfter)?' Attendi almeno '+retryAfter+' secondi.':''));
     }
@@ -228,16 +237,18 @@
     const deck = selectedDeck();
     if (!deck) return status('Seleziona prima un mazzo.',true);
     const report = currentReport(deck);
-    const id=deck.id, version=deck.versionTag || '';
+    const id=deck.id, version=report?.versionTag || deck.versionTag || '';
     setBusy(true);status('Recupero dell’analisi salvata senza usare la quota giornaliera…');
     try {
       let result;
       if (report?.deckHash) {
         result=await apiCall({method:'GET',hash:report.deckHash});
       } else {
-        const data=await payloadForDeck(deck);
-        if (!data.url) throw Error('Per recuperare un risultato senza nuova analisi serve un link pubblico Moxfield/Archidekt o un’analisi già salvata.');
-        result=await apiCall({body:{url:data.url,mode:'cached'}});
+        const url=String(deck.moxfield || '').trim();
+        if(!/^https:\/\/(www\.)?(moxfield|archidekt)\.com\//i.test(url)){
+          throw Error('Per recuperare un risultato senza nuova analisi serve un link pubblico Moxfield/Archidekt o un’analisi già salvata.');
+        }
+        result=await apiCall({body:{url,mode:'cached'}});
       }
       const stored=window.DeckCycleApp.getDeck(id);
       if (!stored) throw Error('Il mazzo è stato eliminato.');
