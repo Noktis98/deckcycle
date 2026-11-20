@@ -304,7 +304,11 @@ body.deckcycle-tabs .stack:empty{display:none}
 .scryConfig{display:flex;flex-wrap:wrap;align-items:end;gap:9px;margin:13px 0}
 .scrySecret{flex:1 1 210px;min-width:0}
 .scrySecret label{display:block;margin-bottom:5px}
-.scrySecret input{width:100%}
+.scrySecret > input{width:100%}
+.scryRememberChoice{display:flex;align-items:center;gap:9px;margin:13px 0 9px;font-size:12px;font-weight:700;cursor:pointer}
+.scryRememberChoice input{width:18px;height:18px;accent-color:var(--gold);flex:0 0 18px}
+.scryRememberFoot{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px}
+.scryRememberFoot .miniBtn{font-size:11px;padding:7px 10px}
 .scryStatus{font-size:12px;line-height:1.5;min-height:22px;color:var(--muted);margin:7px 0 11px}
 .scrySummary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:12px 0 16px}
 .scryStat{background:var(--panel3);padding:13px 10px;border:1px solid var(--line);border-radius:12px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;min-width:0}
@@ -749,6 +753,15 @@ body.deckcycle-tabs .stack:empty{display:none}
         <div class="scrySecret">
           <label class="sectionSub" for="scryAccessCode">Codice personale per l’analisi (NON la chiave API ScryCheck)</label>
           <input id="scryAccessCode" class="field" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Codice personale configurato su Netlify">
+          <label class="scryRememberChoice" for="scryRememberCode">
+            <input id="scryRememberCode" type="checkbox">
+            Ricorda il codice su questo iPhone
+          </label>
+          <div class="scryRememberFoot">
+            <span id="scryRememberInfo" class="note">Se lo ricordi, non dovrai reinserirlo per le prossime analisi.</span>
+            <button id="scryForgetCodeBtn" class="miniBtn" type="button" disabled>Dimentica codice</button>
+          </div>
+          <p class="note">Salvato solo in questo browser, non nei backup. Evita questa opzione su un dispositivo condiviso.</p>
         </div>
         <button id="scryAnalyzeBtn" class="primary" type="button">🧪 Analizza con ScryCheck</button>
         <button id="scryReloadBtn" class="pillBtn hide" type="button">Rileggi analisi salvata</button>
