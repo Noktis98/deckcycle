@@ -580,11 +580,7 @@ body.deckcycle-tabs .stack:empty{display:none}
     </div>
     <div class="modalGrid">
       <div>
-        <label class="sectionSub">Avversari</label>
-        <input class="field" id="recordOpponents" placeholder="Es. Luca, Marco, Alessio">
-        <label class="sectionSub" style="display:block;margin-top:12px">Comandanti affrontati</label>
-        <input class="field" id="recordEnemy" placeholder="Es. Atraxa, Krenko, Omnath">
-        <label class="sectionSub" style="display:block;margin-top:12px">Note</label>
+        <label class="sectionSub">Note</label>
         <textarea id="recordNotes" placeholder="Come è andata? match-up? carte da cambiare?"></textarea>
 
         <div class="archiveHeading">Tavolo Commander</div>
@@ -900,11 +896,13 @@ function restartDrawSeries(){
 }
 function resetDrawsManually(){
   if(!state.decks.length)return toast('Aggiungi prima un mazzo.');
+  if(drawingNow)return toast('Aspetta che la ruota abbia finito di girare.');
   if(!confirm('Ricominciare le estrazioni? Non cambierà vittorie, sconfitte o giro delle partite.'))return;
   restartDrawSeries();
   state.selected=null;
+  state.pendingDrawId=null;
   state.selectedManually=false;
-  $('reelText').textContent='Tocca “Pesca un mazzo”';
+  $('reelText').textContent='🎲 Tocca qui per girare la ruota';
   save();render();toast('Nuova serie di estrazioni avviata.');
 }
 function manaIcons(colors){
@@ -930,6 +928,7 @@ function advanceRound(origin){
   // Il nuovo giro partite riparte anche con una serie di estrazioni pulita.
   state.drawnIds=[];
   state.drawSeries=1;
+  state.pendingDrawId=null;
   state.selected = null;
   state.selectedManually = false;
 }
@@ -1219,8 +1218,6 @@ function openRecord(result){
   $('recordDeckName').textContent = d.name;
   $('recordDeckTags').innerHTML = `${manaIcons(d.colors)}<span class="tag">${d.format || 'Commander'}</span><span class="tag">Bracket ${d.bracket||'—'}</span>`;
   if(chosenArt(d)){$('recordArt').src = chosenArt(d); $('recordArt').classList.remove('hide')} else {$('recordArt').classList.add('hide')}
-  $('recordOpponents').value = '';
-  $('recordEnemy').value = '';
   $('recordNotes').value = '';
   window.DeckCycleExtras?.prepareOpponents();
   openModal('recordModal');
@@ -1251,8 +1248,8 @@ function registerResult(){
     id:uid(), deckId:d.id, name:d.name, round:state.round, at:new Date().toISOString(),
     result:pendingResult, override,
     deckVersion:d.versionTag||'',
-    opponents:$('recordOpponents').value.trim() || opponents.map(x=>x.name).filter(Boolean).join(', '),
-    enemy:$('recordEnemy').value.trim() || opponents.map(x=>x.commander).filter(Boolean).join(', '),
+    opponents:opponents.map(x=>x.name).filter(Boolean).join(', '),
+    enemy:opponents.map(x=>x.commander).filter(Boolean).join(', '),
     opponentCommanders:opponents,
     notes:$('recordNotes').value.trim(),
     problems:$('recordProblems').value.trim()
@@ -1311,6 +1308,7 @@ function deleteDeck(){
 }
 function togglePauseCurrent(){ const d=getDeck(editId); if(!d) return; d.paused=!d.paused; save(); render(); renderEditPreview(d); }
 function newRound(){
+  if(drawingNow)return toast('Aspetta che la ruota abbia finito di girare.');
   if(!state.decks.length) return;
   if(!confirm('Vuoi iniziare un nuovo giro? Le statistiche restano salvate.')) return;
   advanceRound('manual'); save(); render(); toast('Nuovo giro avviato.');
