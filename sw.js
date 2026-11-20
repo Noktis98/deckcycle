@@ -1,6 +1,6 @@
 /* DeckCycle — Fase 2: cache offline coerente e aggiornamenti su richiesta.
    Non intercettare Scryfall o risorse esterne; non cancellare i dati del browser. */
-const CACHE_NAME = 'deckcycle-rc1-hero-spacing-v1';;
+const CACHE_NAME = 'deckcycle-rc1-scrycheck-remember-code-v1';
 const CORE_ASSETS = ['index.html', 'safeguards.js', 'pwa.js', 'archive.js', 'scrycheck-ui.js', 'archive-ui.js', 'features.js', 'manifest.webmanifest'];
 const ICON_ASSETS = ['icon-180.png', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'];
 const KNOWN_ASSETS = new Set([...CORE_ASSETS, ...ICON_ASSETS]);
