@@ -91,6 +91,9 @@ img{display:block;max-width:100%}
 .topbar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
 .brand{display:flex;align-items:center;gap:12px}
 .brandBadge{width:48px;height:48px;border-radius:16px;background:linear-gradient(145deg, var(--gold), #7e5174);display:grid;place-items:center;color:#211923;font-size:26px;box-shadow:var(--shadow)}
+.profileAvatar{border:1px solid var(--gold2);padding:0;overflow:hidden;flex:0 0 48px}
+.profileAvatar img{width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit}
+.profileAvatar img.hide{display:none}
 .brandTitle{font-size:28px;font-weight:900;letter-spacing:-.04em;line-height:1}
 .brandSub{font-size:12px;color:var(--muted);margin-top:3px}
 .topActions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
@@ -263,6 +266,31 @@ body.deckcycle-tabs .stack:empty{display:none}
 .drawProgress{margin:12px auto 0;padding:10px 12px;text-align:center;font-weight:800;color:var(--gold);border:1px solid var(--line);border-radius:11px;background:var(--panel2)}
 .drawProgress.drawCompleted{color:var(--green)}
 .drawProgressHelp{font-size:11px;color:var(--muted);text-align:center;line-height:1.5;margin-top:7px}
+.reelSpinTrigger{cursor:pointer;touch-action:manipulation;min-height:162px;outline-offset:4px}
+.reelSpinTrigger:focus-visible{outline:3px solid var(--gold)}
+.reelSpinTrigger[aria-disabled="true"]{cursor:progress;pointer-events:none}
+.reelSpinTrigger:hover:not([aria-disabled="true"]){border-color:var(--gold2);box-shadow:inset 0 0 30px rgba(240,201,127,.08)}
+.opponentPresetBar{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.opponentPresetBar select{font-size:12px;padding:7px 8px}
+.rosterSettings,.avatarSettings{border:1px solid var(--line);border-radius:16px;padding:14px;margin:0 0 20px;background:var(--panel2)}
+.rosterSettings .archiveHeading{margin:15px 0 8px}
+.rosterAddGroup{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.rosterAddGroup input{flex:1 1 180px}
+.rosterGroups{display:flex;gap:7px;flex-wrap:wrap}
+.rosterGroupItem{display:flex;align-items:center;gap:5px;padding:5px 8px;border:1px solid var(--line);border-radius:12px}
+.rosterGroupItem button{border:0;background:none;color:var(--muted);font-size:13px}
+.rosterNewPlayer{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.rosterNewPlayer input:first-child{grid-column:1/-1}
+.rosterNewPlayer button{grid-column:1/-1}
+.rosterPlayers{display:grid;gap:10px;margin:12px 0}
+.rosterPlayer{border:1px solid var(--line);padding:11px;border-radius:14px;background:var(--panel3)}
+.rosterPlayerFields{display:grid;grid-template-columns:minmax(100px,1fr) minmax(110px,1fr);gap:8px}
+.rosterDeckRow{display:grid;grid-template-columns:minmax(0,1fr) 38px;gap:7px;margin:7px 0}
+.rosterPlayerActions{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
+.rosterPlayer .miniBtn{padding:7px}
+.rosterMatchGroup{display:grid;grid-template-columns:1fr auto;gap:6px;margin:10px 0 12px}
+.rosterMatchGroup label{grid-column:1/-1}
+@media(max-width:420px){.rosterPlayerFields,.rosterNewPlayer{grid-template-columns:1fr}.rosterNewPlayer input:first-child,.rosterNewPlayer button{grid-column:auto}}
 .drawViewport{position:absolute;inset:0;overflow:hidden;display:flex;align-items:flex-start;justify-content:center;pointer-events:none}
 .reelWrap{position:relative;overflow:hidden;min-height:152px;height:152px}
 .drawRail{display:flex;flex-direction:column;gap:8px;align-items:stretch;width:min(100%,420px);will-change:transform}
@@ -320,7 +348,7 @@ body.deckcycle-tabs .stack:empty{display:none}
 <div class="app">
   <header class="topbar">
     <div class="brand">
-      <div class="brandBadge">🃏</div>
+      <button class="brandBadge profileAvatar" id="profileAvatarBtn" type="button" aria-label="Modifica foto profilo" title="Modifica foto profilo"><img id="profileAvatarImage" class="hide" alt="Foto profilo"><span id="profileAvatarFallback">🃏</span></button>
       <div>
         <div class="brandTitle">DeckCycle Deluxe</div>
         <div class="brandSub">Rotazione intelligente dei mazzi Commander • Mobile first</div>
@@ -350,7 +378,7 @@ body.deckcycle-tabs .stack:empty{display:none}
         <div class="heroContent">
           <div class="kicker">Mazzo estratto</div>
           <div class="deckTitle" id="heroName">Pronto per il prossimo giro?</div>
-          <div class="deckSub" id="heroDesc">Pesca un mazzo dalla tua collezione. Quelli già giocati nel giro corrente vengono esclusi automaticamente, ma restano sempre selezionabili a mano.</div>
+          <div class="deckSub" id="heroDesc">Tocca la roulette qui sotto per scoprire il prossimo mazzo. Il risultato comparirà qui al termine dell'animazione.</div>
           <div class="tagRow">
             <div class="manaRow" id="heroColors"></div>
             <span class="tag" id="heroBracket">Bracket —</span>
@@ -358,8 +386,6 @@ body.deckcycle-tabs .stack:empty{display:none}
             <span class="tag" id="heroStatus">Nessun mazzo selezionato</span>
           </div>
           <div class="drawControls">
-            <button class="primary" id="drawBtn">✨ Pesca un mazzo</button>
-            <button class="secondary" id="rerollBtn">🎲 Cambia mazzo</button>
             <button class="success" id="winBtn">🏆 Vittoria</button>
             <button class="danger" id="lossBtn">💀 Sconfitta</button>
           </div>
@@ -376,7 +402,7 @@ body.deckcycle-tabs .stack:empty{display:none}
         <div class="sectionHeader">
           <div>
             <div class="sectionTitle">Sorteggio animato</div>
-            <div class="sectionSub">Ogni pressione di “Pesca” esclude subito il mazzo estratto. Non serve registrare vittorie o sconfitte per far avanzare il conteggio.</div>
+            <div class="sectionSub">Tocca la ruota per estrarre. Solo quando si ferma, il mazzo compare nel riquadro superiore. I mazzi già estratti restano esclusi.</div>
           </div>
           <div class="row">
             <button class="pillBtn" id="newRoundBtn" type="button">Nuovo giro partite</button>
@@ -389,13 +415,13 @@ body.deckcycle-tabs .stack:empty{display:none}
             <div class="machineLabel">Ruota del destino</div>
             <div class="sectionSub" id="roundInfo">Giro partite 1</div>
           </div>
-          <div class="reelWrap">
-            <div class="reelText" id="reelText">Tocca “Pesca un mazzo”</div>
+          <div class="reelWrap reelSpinTrigger" id="spinReelBtn" role="button" tabindex="0" aria-label="Gira la ruota per estrarre un mazzo">
+            <div class="reelText" id="reelText">🎲 Tocca qui per girare la ruota</div>
           </div>
           <div id="drawProgress" class="drawProgress" aria-live="polite">
             🎲 Giro estrazioni 1 · Non ancora iniziato
           </div>
-          <div class="drawProgressHelp">Il mazzo viene escluso appena è estratto o scelto. Vittorie e sconfitte aggiornano soltanto le statistiche delle partite.</div>
+          <div class="drawProgressHelp">Il mazzo viene escluso dopo ogni estrazione, anche senza una partita registrata.</div>
         </div>
       </section>
 
@@ -491,6 +517,35 @@ body.deckcycle-tabs .stack:empty{display:none}
         <div id="analysisDetails"></div>
       </section>
       <section class="card section reveal" data-tab="settings">
+        <section class="rosterSettings" aria-label="Gruppi e avversari salvati">
+          <div class="sectionTitle">👥 Gruppi e avversari</div>
+          <p class="note">Salva i giocatori abituali e i loro mazzi. Quando registri una partita puoi selezionarli al volo, oppure aggiungere un giocatore nuovo direttamente da quella schermata.</p>
+          <div class="archiveHeading">Gruppi di gioco</div>
+          <div class="rosterAddGroup">
+            <input class="field" id="rosterGroupName" maxlength="70" placeholder="Es. Tavolo del venerdì" aria-label="Nome nuovo gruppo">
+            <button class="pillBtn" id="rosterGroupAddBtn" type="button">+ Crea gruppo</button>
+          </div>
+          <div id="rosterGroups" class="rosterGroups"></div>
+          <div class="archiveHeading">Aggiungi un avversario</div>
+          <div class="rosterNewPlayer">
+            <input id="rosterNewName" class="field" maxlength="120" placeholder="Nome del giocatore" aria-label="Nuovo giocatore">
+            <select id="rosterNewGroup" aria-label="Gruppo del giocatore"><option value="">Senza gruppo</option></select>
+            <input id="rosterNewDeck" class="field" maxlength="220" placeholder="Comandante o mazzo (facoltativo)" aria-label="Mazzo abituale">
+            <button class="primary" id="rosterPlayerAddBtn" type="button">+ Salva giocatore</button>
+          </div>
+          <div id="rosterPlayers" class="rosterPlayers"></div>
+          <p class="note">I gruppi e i giocatori vengono inclusi nel backup JSON di DeckCycle. Puoi sempre cambiare nome, gruppo o mazzi salvati.</p>
+        </section>
+        <section class="avatarSettings" aria-label="Foto profilo">
+          <div class="sectionTitle">🖼️ Foto profilo</div>
+          <p class="note">Sostituisci l'emoji della carta in alto a sinistra con una tua immagine. Non cambia l'icona installata dell'app sull'iPhone.</p>
+          <div class="row">
+            <button id="profileAvatarChangeBtn" type="button" class="pillBtn">Carica immagine</button>
+            <button id="profileAvatarRemoveBtn" type="button" class="pillBtn">Ripristina emoji</button>
+            <input id="profileAvatarFile" type="file" accept="image/jpeg,image/png,image/webp" class="hide">
+          </div>
+          <div id="profileAvatarStatus" class="sectionSub" role="status" aria-live="polite"></div>
+        </section>
         <div class="sectionTitle">Impostazioni e protezione dati</div>
         <p class="note">DeckCycle salva mazzi, storico, versioni e artwork sul dispositivo, non su un server.
           Per proteggerli usa <b>Esporta</b> e conserva il JSON in File/iCloud Drive.
@@ -533,7 +588,11 @@ body.deckcycle-tabs .stack:empty{display:none}
         <textarea id="recordNotes" placeholder="Come è andata? match-up? carte da cambiare?"></textarea>
 
         <div class="archiveHeading">Tavolo Commander</div>
-        <div class="sectionSub">Aggiungi gli avversari e cerca i loro comandanti su Scryfall, se disponibili.</div>
+        <div class="sectionSub">Seleziona un giocatore salvato e uno dei suoi mazzi, oppure scrivine uno nuovo: verrà ricordato quando confermi il risultato.</div>
+        <div class="rosterMatchGroup"><label class="sectionSub" for="recordGroupSelect">Carica un gruppo abituale</label>
+          <select id="recordGroupSelect"><option value="">Seleziona gruppo…</option></select>
+          <button id="recordGroupFillBtn" class="pillBtn" type="button">Carica giocatori</button>
+        </div>
         <div class="row" style="justify-content:space-between;margin:8px 0">
           <span id="opponentCount" class="sectionSub">3 avversari</span>
           <button type="button" class="pillBtn" id="opponentAddBtn">+ Avversario</button>
@@ -728,8 +787,14 @@ body.deckcycle-tabs .stack:empty{display:none}
 (() => {
 const KEY = 'deckcycle_magic_v1';
 const $ = id => document.getElementById(id);
-const DEFAULT_STATE = {decks:[], history:[], round:1, roundOrigin:'manual', selected:null, selectedManually:false, drawSeries:1, drawnIds:[], theme:'magic', filters:{q:'', color:'', bracket:'', only:false}};
+const DEFAULT_STATE = {opponentGroups:[], opponents:[], decks:[], history:[], round:1, roundOrigin:'manual', selected:null, selectedManually:false, drawSeries:1, drawnIds:[], theme:'magic', filters:{q:'', color:'', bracket:'', only:false}};
 let state = load();
+if(!Array.isArray(state.opponentGroups)) state.opponentGroups=[];
+if(!Array.isArray(state.opponents)) state.opponents=[];
+if(state.pendingDrawId && state.decks.some(d=>d.id===state.pendingDrawId)) {
+  state.selected=state.pendingDrawId; // recupera un sorteggio interrotto in Safari
+}
+state.pendingDrawId=null;
 // Compatibile con i backup precedenti: non cambia nessuna partita registrata.
 if(!Array.isArray(state.drawnIds)) state.drawnIds = [];
 state.drawnIds = [...new Set(state.drawnIds.filter(id =>
@@ -899,7 +964,7 @@ function afterHistoryRemoval(removed){
   syncPlayedWithCurrentRound();
 }
 function renderHero(){
-  const d = getDeck(state.selected);
+  const d = drawingNow ? null : getDeck(state.selected);
   const t = totalStats();
   $('sDecks').textContent = state.decks.length;
   $('sAvailable').textContent = drawStats().remaining;
@@ -914,12 +979,14 @@ function renderHero(){
   $('drawProgress').classList.toggle('drawCompleted',ds.eligible>0 && ds.remaining===0);
   const hero = $('hero');
   if(!d){
-    $('heroName').textContent = 'Pronto per il prossimo giro?';
-    $('heroDesc').textContent = 'Pesca un mazzo dalla tua collezione. Quelli già giocati nel giro corrente vengono esclusi automaticamente, ma restano sempre selezionabili a mano.';
+    $('heroName').textContent = drawingNow ? '🎲 La ruota sta girando…' : 'Pronto per il prossimo giro?';
+    $('heroDesc').textContent = drawingNow ?
+      'Il mazzo estratto comparirà solo quando la roulette sarà ferma.' :
+      'Tocca la roulette qui sotto per scoprire il prossimo mazzo.';
     $('heroColors').innerHTML = '<span class="tag">Nessun colore</span>';
     $('heroBracket').textContent = 'Bracket —';
     $('heroFormat').textContent = 'Formato —';
-    $('heroStatus').textContent = 'Nessun mazzo selezionato';
+    $('heroStatus').textContent = drawingNow ? 'Estrazione in corso' : 'Nessun mazzo estratto';
     $('heroArt').classList.add('hide'); $('heroArt').removeAttribute('src');
     hero.style.setProperty('--deck-bg', deckGradient('C'));
     return;
@@ -953,7 +1020,6 @@ function renderDeckList(){
         <div class="miniStat">${s.games} partite · ${s.wins}W / ${s.losses}L · ${s.games ? s.rate+'%' : '—'} win rate</div>
       </div>
       <div class="deckActions">
-        <button class="miniBtn" data-action="choose" data-id="${escapeHtml(d.id)}">Usa</button>
         <button class="miniBtn" data-action="pause" data-id="${d.id}">${d.paused?'Riattiva':'Pausa'}</button>
         <button class="miniBtn" data-action="edit" data-id="${d.id}">Scheda</button>
         <button class="miniBtn" data-action="list" data-id="${d.id}">Lista</button>
@@ -1108,34 +1174,46 @@ async function animateDraw(){
   }
   if(!pool.length) return toast('Nessun mazzo da pescare.');
   const selected=pool[Math.floor(Math.random()*pool.length)];
-  // La pesca viene registrata SUBITO, prima della roulette. Anche se l'app
-  // viene chiusa o il timer iOS viene sospeso, il mazzo non potrà ricomparire.
-  state.selected=selected.id;
-  state.selectedManually=false;
+  // Riserva l'esito prima dell'animazione per evitare ripetizioni, ma non
+  // mostrarlo né selezionarlo nel quadrante finché il rullo non si ferma.
+  const previousDrawn=[...state.drawnIds],previousSelected=state.selected;
   if(!state.drawnIds.includes(selected.id))state.drawnIds.push(selected.id);
-  if(!save()) return toast('Estrazione non salvata: verifica la memoria del browser.');
+  state.pendingDrawId=selected.id;
+  state.selected=null;
+  state.selectedManually=false;
+  if(!save()){
+    state.drawnIds=previousDrawn;state.selected=previousSelected;state.pendingDrawId=null;
+    return toast('Estrazione non salvata: verifica la memoria del browser.');
+  }
   drawingNow=true;
-  $('drawBtn').disabled=true;
-  $('rerollBtn').disabled=true;
-  renderHero();
+  $('spinReelBtn').setAttribute('aria-disabled','true');
+  $('winBtn').disabled=true;
+  $('lossBtn').disabled=true;
+  renderHero(); // quadrante superiore nascosto durante tutta la roulette
   renderDeckList();
   try{
     if(window.DeckCycleExtras) await window.DeckCycleExtras.animateReel(pool,selected);
     else $('reelText').textContent=selected.name;
-    $('hero').classList.remove('reveal'); void $('hero').offsetWidth; $('hero').classList.add('reveal');
   }catch(error){
     $('reelText').textContent=selected.name;
     toast('Animazione interrotta: estrazione conservata.');
   }finally{
+    state.selected=selected.id;
+    state.pendingDrawId=null;
     drawingNow=false;
-    $('drawBtn').disabled=false;
-    $('rerollBtn').disabled=false;
-    render();
+    $('spinReelBtn').removeAttribute('aria-disabled');
+    $('winBtn').disabled=false;
+    $('lossBtn').disabled=false;
+    save();
+    render(); // il nome e l'artwork compaiono SOLO ad animazione conclusa
+    $('hero').classList.remove('reveal');
+    void $('hero').offsetWidth;
+    $('hero').classList.add('reveal');
   }
 }
 function openRecord(result){
   const d = getDeck(state.selected);
-  if(!d) return toast('Seleziona o pesca prima un mazzo.');
+  if(drawingNow || !d) return toast('Gira la ruota e attendi che si fermi prima di registrare una partita.');
   pendingResult = result;
   $('recordTitle').textContent = result === 'win' ? 'Registra vittoria' : 'Registra sconfitta';
   $('recordDeckName').textContent = d.name;
@@ -1168,6 +1246,7 @@ function registerResult(){
   if(!d || !pendingResult) return;
   const override = !!state.selectedManually || d.played || d.paused;
   const opponents = window.DeckCycleExtras?.collectOpponents() || [];
+  window.DeckCycleExtras?.rememberOpponents(opponents);
   state.history.push({
     id:uid(), deckId:d.id, name:d.name, round:state.round, at:new Date().toISOString(),
     result:pendingResult, override,
@@ -1311,17 +1390,24 @@ function importData(file){
       if(!Array.isArray(state.drawnIds))state.drawnIds=[];
       state.drawnIds=state.drawnIds.filter(id=>state.decks.some(d=>d.id===id));
       state.drawSeries=Number.isInteger(state.drawSeries)&&state.drawSeries>0?state.drawSeries:1;
+      if(!Array.isArray(state.opponentGroups))state.opponentGroups=[];
+      if(!Array.isArray(state.opponents))state.opponents=[];
+      state.pendingDrawId=null;
+      window.DeckCycleExtras?.onRosterImported?.();
       render();
       toast('Backup importato correttamente, incluse le liste se presenti.');
       warmArchiveBackup();
       window.DeckCycleExtras?.hydrateArtworks();
+      window.DeckCycleExtras?.hydrateAvatar?.();
     }
   });
 }
 
 $('addForm').addEventListener('submit', addDeckFromForm);
-$('drawBtn').addEventListener('click', animateDraw);
-$('rerollBtn').addEventListener('click', animateDraw);
+$('spinReelBtn').addEventListener('click', animateDraw);
+$('spinReelBtn').addEventListener('keydown', e=>{
+  if(e.key==='Enter'||e.key===' '){e.preventDefault();animateDraw();}
+});
 $('winBtn').addEventListener('click', ()=>openRecord('win'));
 $('lossBtn').addEventListener('click', ()=>openRecord('loss'));
 $('recordConfirmBtn').addEventListener('click', registerResult);
@@ -1347,13 +1433,6 @@ $('onlyAvailableBtn').addEventListener('click', ()=>{state.filters.only=!state.f
 $('deckList').addEventListener('click', e=>{
   const btn = e.target.closest('[data-action]'); if(!btn) return;
   const {action,id} = btn.dataset; const d = getDeck(id); if(!d) return;
-  if(action==='choose'){
-    state.selected=id; state.selectedManually=true;
-    if(!d.paused && !state.drawnIds.includes(id))state.drawnIds.push(id);
-    save(); render();
-    toast(`Selezionato: ${d.name}`);
-    window.DeckCycleExtras?.setTab('play');
-  }
   if(action==='pause'){d.paused=!d.paused; save(); render(); toast(d.paused ? 'Mazzo messo in pausa.' : 'Mazzo riattivato.');}
   if(action==='edit'){openEdit(id)}
   if(action==='list'){window.DeckCycleArchiveUI.open(d)}
