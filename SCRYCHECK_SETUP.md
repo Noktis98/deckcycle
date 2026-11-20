@@ -1,113 +1,60 @@
-# DeckCycle × ScryCheck — configurazione protetta
+# DeckCycle × ScryCheck — guida alla versione di prova
 
-Questa integrazione si trova nel branch `integrazione-scrycheck`, **basato sulla
-versione completa `deckcycle-completa-rc1`**. È una Release Candidate e non
-modifica l'app ufficiale fino al merge delle Pull Request e ai test su iPhone.
+Questa funzione permette di analizzare **le liste Commander già importate in DeckCycle**. Il codice è su un branch di prova: non modifica il sito ufficiale finché non viene approvata la pubblicazione.
 
-## Cosa è già implementato
+## Funzioni disponibili
 
-- Sezione **Analisi → Analisi ufficiale ScryCheck**.
-- Analisi di una lista salvata in DeckCycle oppure di un link pubblico
-  Moxfield/Archidekt.
-- Conferma prima di ogni invio: **le analisi e le relative liste diventano
-  pagine pubbliche su ScryCheck**.
-- Risultati Power Level, intervallo di confidenza, bracket, stima dei turni di
-  vittoria, cinque indicatori (velocity/consistency/interaction/efficiency/lethality),
-  avvertenze e link obbligatorio alla pagina ScryCheck.
-- Salvataggio per versione del mazzo, dentro il backup principale JSON
-  (`data.decks[].scrycheck.reports`), max 20 risultati per mazzo.
-- Recupero gratuito della precedente analisi mediante
-  `GET /api/v1/decks/{deckHash}`, o `mode: cached` per il link pubblico
-  Moxfield/Archidekt senza report locale.
-- Funzione Netlify in `netlify/functions/scrycheck.mjs`: l'API key è letta
-  **soltanto dalle variabili d'ambiente**, mai da file pubblici o codice
-  browser. L'app chiama soltanto `/api/scrycheck`.
-- Controllo di accesso con un **secondo codice privato**, distinto dalla
-  chiave API ScryCheck, e limite Netlify di 6 richieste al minuto per IP/dominio.
+- Dalla scheda **Mazzi → Lista** si vede il pulsante **🧪 Analizza con ScryCheck** dopo aver salvato una lista Moxfield.
+- Analisi su richiesta: **Power Level**, intervallo di affidabilità, **Bracket stimato**, velocità stimata di vittoria, cinque indicatori (velocità, consistenza, interazione, efficienza e chiusura), avvisi e link alla pagina completa su ScryCheck.
+- Prima dell'invio appare una conferma: **lista e analisi diventano pubbliche su ScryCheck**, anche se la lista era stata soltanto incollata.
+- Il risultato viene conservato in **IndexedDB** per quel mazzo, e inserito nel **backup JSON** sotto la proprietà archive.scrycheck (schemaVersion 3).
+- Se la lista cambia, l'analisi precedente resta visibile ma **è segnalata come non aggiornata**; una nuova analisi sovrascrive il risultato locale precedente.
+- **Rileggi analisi salvata** recupera gratuitamente la valutazione già pubblicata tramite GET, senza una nuova analisi giornaliera.
+- I risultati non cambiano automaticamente il Bracket impostato manualmente in DeckCycle.
+- L'app offline mostra i risultati già salvati, senza poterne richiedere di nuovi.
 
-## PASSO 1 — Ruota la vecchia chiave
+## PRIMA DI ABILITARE: chiedi la rotazione della chiave
 
-La credenziale che hai incollato in una ricerca Google **non è stata usata
-per sviluppare o testare l'integrazione**. Prima di abilitarla, fai revocare
-quella precedente da ScryCheck e procurati una nuova chiave.
+La chiave API precedentemente incollata in una ricerca Google **non è stata usata per implementare o testare** il collegamento. È consigliabile revocarla e sostituirla prima di configurare la funzione.
 
-Non incollare la nuova chiave nella chat, nel repository, nel file
-`netlify.toml`, nel codice, nel manifest, nelle issue o nelle PR GitHub.
+Non incollare la nuova chiave in ChatGPT, nel repository GitHub, nei file pubblici, nel manifest o in un file netlify.toml.
 
-## PASSO 2 — Configura le variabili su Netlify
+## PASSO 1 — Imposta due variabili private su Netlify
 
-1. Apri [app.netlify.com](https://app.netlify.com), entra nel progetto
-   **deckcycle** e vai su **Project configuration → Environment variables**.
-2. Aggiungi **`SCRYCHECK_API_KEY`**: valore = la *nuova* chiave privata
-   fornita da ScryCheck (non quella precedentemente condivisa).
-3. Aggiungi **`SCRYCHECK_ACCESS_CODE`**: valore = un codice **a tua scelta
-   di almeno 12 caratteri**, completamente distinto dalla chiave API.
-   Questo codice servirà a sbloccare il pulsante Analizza sulla tua app;
-   non va pubblicato o condiviso.
-4. Se il piano Netlify permette di scegliere lo scope, imposta **Functions**.
-   Se permette di scegliere il contesto, seleziona **Deploy Previews** per
-   provare prima sul branch; per la futura pubblicazione, configurare anche
-   **Production** solo dopo i test.
-5. Marca le variabili come **segrete** quando la UI offre questa opzione.
-6. Effettua un **nuovo deploy di anteprima** dopo aver salvato le variabili:
-   le funzioni ricevono i valori disponibili al momento del deploy.
+Apri [Netlify](https://app.netlify.com) → progetto **deckcycle** → **Project configuration / Site configuration → Environment variables**.
 
-**Non confondere le due variabili.** La chiave `SCRYCHECK_API_KEY` non
-va mai digitata nell'app; quando il browser chiede un codice, va inserito
-soltanto il valore di `SCRYCHECK_ACCESS_CODE`.
+Crea due variabili **nel contesto Deploy previews** quando disponibile, con ambito **Functions**:
 
-## PASSO 3 — Test dell'integrazione
+1. **SCRYCHECK_API_KEY**: la **nuova** chiave privata che ti invierà ScryCheck.
+2. **SCRYCHECK_ACCESS_CODE**: un tuo **codice personale diverso dalla chiave API**, di almeno 12 caratteri. Sceglilo tu e non condividerlo.
 
-1. Conserva prima un backup JSON esterno dei tuoi mazzi dalla PWA ufficiale,
-   per esempio in **File → iCloud Drive**. Non cancellare la PWA originale.
-2. Apri **la Deploy Preview della PR ScryCheck**; il sito principale
-   `deckcycle.netlify.app` deve rimanere invariato.
-3. Importa il backup JSON soltanto nella preview: gli archivi sono separati.
-4. Scegli un mazzo che abbia una lista Moxfield completa salvata in
-   **Mazzi → Lista**, oppure un link pubblico Moxfield/Archidekt nella scheda.
-5. Vai su **Analisi**, seleziona il mazzo e scegli la fonte (Automatica,
-   Lista DeckCycle oppure Link).
-6. Premi **Analizza con ScryCheck**. Leggi e accetta la conferma di pubblicazione
-   solo se sei d'accordo a rendere pubblici lista e analisi.
-7. Inserisci **il codice personale DeckCycle**, mai la chiave API.
-8. Verifica Power Level, bracket, turni, indicatori, warning e collegamento
-   alla pagina ufficiale ScryCheck.
-9. Premi **Recupera analisi salvata**: viene usato il GET gratuito, senza
-   consumare una nuova analisi giornaliera.
-10. Modifica la lista e salva una nuova versione: l'analisi vecchia deve
-    restare nello storico ma deve essere segnalata come non corrispondente
-    alla versione attuale.
-11. Esporta il backup JSON: controlla
-    `data.decks[].scrycheck.reports`. Verifica il ripristino su un'altra
-    preview o un ambiente separato.
+Non scrivere nessuno dei valori nel codice. Dopo averle salvate, avvia un **nuovo deploy della Preview**: le Netlify Functions usano le variabili disponibili al momento della pubblicazione.
 
-## Errori previsti
+Il codice personale viene richiesto all'interno di DeckCycle; non devi mai digitare la chiave API nell'app. Dopo una richiesta riuscita il codice personale è conservato **solo nella sessione Safari**, non nei backup. Limite server: 6 richieste/minuto per IP e dominio. Riduce gli abusi, ma non sostituisce autenticazione e quota globale per un servizio multiutente.
 
-- `NOT_CONFIGURED`: manca almeno una delle due variabili Netlify, oppure
-  serve un nuovo deploy.
-- `ACCESS_DENIED`: codice personale errato.
-- `UNAUTHORIZED`: chiave ScryCheck non valida o revocata.
-- `NOT_ANALYZED`: nessun risultato disponibile nella cache del servizio;
-  occorre lanciare una nuova analisi.
-- `RATE_LIMITED` / `QUOTA_EXCEEDED`: attendere il reset indicato dal servizio.
-- `DECK_NOT_FOUND`: il mazzo collegato non è pubblico o non è raggiungibile.
-- `NETWORK_FAILED`: errore di rete o timeout.
+## PASSO 2 — Prova sull'app di anteprima
 
-## Limiti e sicurezza
+1. Esporta prima un backup JSON del tuo archivio, conservandolo nell'app File o su iCloud. **Non cancellare la PWA**.
+2. Apri la **Deploy Preview** della versione completa (PR #5, se la piattaforma la genera).
+3. Vai in **Mazzi → Lista** su un mazzo Commander, incolla la lista Moxfield e premi **Salva lista**.
+4. Nella sezione **🧪 Analisi ScryCheck**, inserisci **SCRYCHECK_ACCESS_CODE**, non la chiave API.
+5. Tocca **Analizza con ScryCheck** e conferma la pubblicazione solo se sei d'accordo.
+6. Controlla Power Level, bracket, velocità, indicatori e link all'analisi completa.
+7. Chiudi e riapri la lista: il risultato locale deve rimanere.
+8. Premi **Rileggi analisi salvata**: il GET non spende quota giornaliera.
+9. Modifica la lista e salva: il vecchio risultato deve essere segnalato come non aggiornato.
+10. Esporta il backup JSON: troverai i risultati in archive.scrycheck.
 
-- L'API non è gratuita all'infinito: ScryCheck documenta limiti standard di
-  60 richieste/minuto e 500 analisi/giorno, salvo accordi diversi.
-  Recupero `GET` e `mode: cached` non spendono la quota giornaliera.
-- Il codice personale e il rate limit proteggono dall'uso anonimo più semplice,
-  ma **non sostituiscono un login per più utenti** né impongono una quota
-  globale assoluta. Per un'app pubblica a molti utenti serviranno
-  autenticazione e controllo quote su storage condiviso.
-- I risultati sono stime ScryCheck, non decisioni ufficiali sul bracket
-  Commander. Mantieni visibile il collegamento alla pagina ScryCheck.
-- Il servizio può modificare il modello di scoring; l'app conserva
-  `scoringVersion` insieme al report.
-- Anche dopo il cambio della chiave, **non pubblicare l'app ufficiale**
-  prima di verificare la preview, importazioni, backup, PWA e analisi reale.
+## Errori più comuni
+
+- **NOT_CONFIGURED**: manca la chiave o il codice nelle variabili Netlify, o serve un nuovo deploy.
+- **ACCESS_DENIED**: codice personale errato.
+- **UNAUTHORIZED**: chiave ScryCheck revocata o non valida.
+- **NOT_ANALYZED**: non esiste un'analisi già pubblicata per questo identificativo.
+- **RATE_LIMITED / QUOTA_EXCEEDED**: attendi il reset indicato dal server, senza ripetere richieste.
+- **NETWORK_FAILED**: rete o server temporaneamente irraggiungibili.
+
+Il risultato di ScryCheck è **una stima informativa**, non un giudizio ufficiale del sistema Commander. Rispetta i limiti ScryCheck e la privacy delle liste.
 
 Documentazione: https://scrycheck.com/docs/api
-Netlify: https://docs.netlify.com/build/functions/environment-variables/
+Configurazione Netlify: https://docs.netlify.com/build/functions/environment-variables/
