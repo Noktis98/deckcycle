@@ -344,7 +344,9 @@
     select.disabled=!decks.length;
   }
   function applySavedDeck(row,p){
-    const index=Number(row.querySelector('.opponentSavedDeck').value);
+    const choice=row.querySelector('.opponentSavedDeck').value;
+    if(choice==='')return;
+    const index=Number(choice);
     const saved=p?.decks?.[index];
     if(!saved)return;
     row.querySelector('.opponentCommander').value=saved.commander;
@@ -426,6 +428,8 @@
   }
   function prepareOpponents(){
     renderRoster();
+    const last=app().getState().lastOpponentGroup||'';
+    if(roster().opponentGroups.some(g=>g.id===last))$('recordGroupSelect').value=last;
     $('opponentTable').innerHTML='';opponentRows=0;
     for(let i=0;i<3;i++)addOpponentRow();
     updateOpponentCount();
@@ -450,6 +454,7 @@
   }
   function rememberOpponents(rows){
     const data=roster(),group=$('recordGroupSelect').value;
+    if(group)data.lastOpponentGroup=group;
     for(const item of rows){
       const name=String(item.name||'').trim().slice(0,120);
       const commander=String(item.commander||'').trim().slice(0,220);
