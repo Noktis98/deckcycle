@@ -280,6 +280,24 @@ body.deckcycle-tabs .stack:empty{display:none}
 @media(max-width:560px){.analysisSummary{grid-template-columns:repeat(2,minmax(0,1fr))}.analysisBreakdown{grid-template-columns:repeat(3,1fr)}.archiveDiffColumns{grid-template-columns:1fr}.opponentRow{grid-template-columns:34px 1fr 1fr 34px 34px;gap:4px}.opponentRow .pillBtn{font-size:11px;padding:5px 0}.opponentRow .field{font-size:11px;padding:8px 5px}}
 @media(prefers-reduced-motion:reduce){.drawRail{transition:none !important}.deckBottomNav button{transition:none}}
 
+
+/* ScryCheck — official analysis block, no API credentials in browser */
+.scrycheckPanel{margin-top:18px;padding:16px;border:1px solid var(--line);border-radius:16px;background:var(--panel2)}
+.scrycheckPanel .sectionSub{line-height:1.5}
+.scrycheckControls{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:14px 0}
+.scrycheckControls select{width:auto;max-width:260px;min-height:40px}
+.scrycheckResult{margin-top:15px}
+.scrycheckMetrics{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin:10px 0}
+.scrycheckMetrics>div{border:1px solid var(--line);border-radius:13px;background:var(--panel);padding:13px 8px;text-align:center;display:flex;flex-direction:column;gap:3px}
+.scrycheckMetrics b{color:var(--gold);font-size:clamp(19px,3vw,30px);line-height:1.2}
+.scrycheckMetrics span{color:var(--muted);font-size:11px}
+.scrycheckVector{display:grid;grid-template-columns:minmax(85px,1fr) 3fr 34px;gap:9px;align-items:center;font-size:12px;padding:5px 0}
+.scrycheckTrack{height:9px;background:var(--panel3);border-radius:99px;overflow:hidden}
+.scrycheckTrack>div{height:100%;background:linear-gradient(90deg,var(--gold2),var(--gold));border-radius:99px}
+.scrycheckFooter{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center;font-size:12px;margin-top:14px}
+.scrycheckFooter a{color:var(--gold)}
+.scrycheckWarn{color:var(--red);font-weight:650;font-size:12px}
+@media(max-width:560px){.scrycheckMetrics{gap:5px}.scrycheckPanel{padding:11px}.scrycheckVector{grid-template-columns:90px minmax(80px,1fr) 25px;gap:5px}}
 </style>
 </head>
 <body>
@@ -454,6 +472,28 @@ body.deckcycle-tabs .stack:empty{display:none}
         <div class="row" style="margin:14px 0"><label for="analysisSelect" class="sectionSub">Mazzo da analizzare</label>
           <select id="analysisSelect" style="width:auto;max-width:280px"></select></div>
         <div id="analysisDetails"></div>
+
+        <section id="scrycheckPanel" class="scrycheckPanel" aria-labelledby="scrycheckHeading">
+          <div class="sectionTitle" id="scrycheckHeading">🔮 Analisi ufficiale ScryCheck</div>
+          <p class="sectionSub">Power Level, bracket e velocità di vittoria direttamente da ScryCheck.
+            Le valutazioni sono stime indipendenti, non classificazioni ufficiali Wizards.</p>
+          <div class="scrycheckControls">
+            <label for="scrycheckSource" class="sectionSub">Fonte</label>
+            <select id="scrycheckSource" aria-label="Fonte analisi ScryCheck">
+              <option value="auto">Automatica: preferisci la lista DeckCycle</option>
+              <option value="local">Lista salvata in DeckCycle</option>
+              <option value="url">Link Moxfield/Archidekt</option>
+            </select>
+            <button type="button" class="primary" id="scrycheckAnalyzeBtn">✨ Analizza con ScryCheck</button>
+            <button type="button" class="pillBtn" id="scrycheckSavedBtn">Recupera analisi salvata</button>
+          </div>
+          <p class="note">⚠️ **Privacy:** ogni nuova analisi e la relativa lista diventano pubbliche su ScryCheck.
+            Una conferma sarà richiesta prima di inviarle. L’analisi salvata si può rileggere senza consumare
+            la quota giornaliera. La chiave API non viene mai memorizzata nel browser.</p>
+          <p class="archiveStatus" role="status" aria-live="polite" id="scrycheckStatus"></p>
+          <div class="scrycheckResult" id="scrycheckResult"></div>
+        </section>
+
       </section>
       <section class="card section reveal" data-tab="settings">
         <div class="sectionTitle">Impostazioni e protezione dati</div>
@@ -703,6 +743,9 @@ function normalizeDeck(d){
     moxfield: typeof d.moxfield === 'string' ? d.moxfield : '',
     image: typeof d.image === 'string' ? d.image : '',
     artist: d.artist || '',
+    scrycheck: d.scrycheck && typeof d.scrycheck === 'object' &&
+      Array.isArray(d.scrycheck.reports) ?
+      {reports:d.scrycheck.reports.slice(0,20)} : {reports:[]},
     customArt: !!d.customArt,
     versionTag: typeof d.versionTag === 'string' ? d.versionTag : '',
     played: !!d.played,
@@ -1251,6 +1294,7 @@ window.DeckCycleApp={
 })();
 </script>
 <script src="./features.js"></script>
+<script src="./scrycheck.js"></script>
 <script src="./pwa.js"></script>
 </body>
 </html>
