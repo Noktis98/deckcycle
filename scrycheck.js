@@ -155,6 +155,8 @@
     }
     let result;
     try { result=await response.json(); } catch {
+      if (response.status === 429) throw Error('Limite temporaneo di richieste Netlify raggiunto. Attendi un minuto prima di riprovare.');
+      if (response.status === 404) throw Error('Funzione ScryCheck non trovata su questa anteprima Netlify. Verifica il deploy.');
       throw Error('Risposta Netlify non valida. Verifica che la funzione sia stata distribuita.');
     }
     if (!response.ok || !result?.success) {
