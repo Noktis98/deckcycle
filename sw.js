@@ -1,7 +1,7 @@
 /* DeckCycle — Fase 2: cache offline coerente e aggiornamenti su richiesta.
    Non intercettare Scryfall o risorse esterne; non cancellare i dati del browser. */
-const CACHE_NAME = 'deckcycle-complete-rc1-v5-icons-fixed';
-const CORE_ASSETS = ['index.html', 'safeguards.js', 'pwa.js', 'archive.js', 'archive-ui.js', 'features.js', 'manifest.webmanifest'];
+const CACHE_NAME = 'deckcycle-rc1-scrycheck-v1';
+const CORE_ASSETS = ['index.html', 'safeguards.js', 'pwa.js', 'archive.js', 'scrycheck-ui.js', 'archive-ui.js', 'features.js', 'manifest.webmanifest'];
 const ICON_ASSETS = ['icon-180.png', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'];
 const KNOWN_ASSETS = new Set([...CORE_ASSETS, ...ICON_ASSETS]);
 const ROOT_URL = new URL(self.registration.scope);
